@@ -73,7 +73,7 @@ Xây dựng hệ thống hiển thị, thống kê và trực quan hóa dữ li�
   👉 Biểu đồ: `Donut Chart` hoặc `Pie Chart`
 
 ---
-
+Done
 ## 💡 Gợi ý mở rộng
 - Lọc dữ liệu theo **năm học**, **ngành học**, hoặc **khu vực**.  
 - Tích hợp **dashboard tổng hợp** để so sánh sinh viên với trung bình lớp/khoa/toàn trường.  
