@@ -102,36 +102,7 @@ export default function EcommerceMetrics() {
   return (
     <div className="space-y-6">
       {/* Filters row: placed first and horizontal */}
-      <div className="flex flex-wrap items-center gap-4 grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
-        <div className="flex items-center space-x-2">
-          <label htmlFor="filter-class" className="text-sm text-gray-600">
-            Lớp
-          </label>
-          <select
-            id="filter-class"
-            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            onChange={(e) => setSelectedClassId(Number(e.target.value))}
-            value={selectedClassId}
-          >
-            {classList.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* placeholder for additional horizontal filters if needed */}
-        <div className="flex items-center space-x-2">
-          <label className="text-sm text-gray-600">Semester</label>
-          <select className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
-            <option>HK1 22-23</option>
-            <option>HK2 22-23</option>
-            <option>HK1 23-24</option>
-            <option>HK2 23-24</option>
-          </select>
-        </div>
-      </div>
+   
       {/* Top ecommerce metrics (kept intact) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
         {/* <!-- Metric Item Start --> */}
