@@ -4,9 +4,15 @@ import AnalyticsStatCard from "../../components/ecommerce/analytics/AnalyticsSta
 import CurrentVisitsDonut from "../../components/ecommerce/analytics/CurrentVisitsDonut";
 import WebsiteVisitsColumnChart from "../../components/ecommerce/analytics/WebsiteVisitsColumnChart";
 import ConversionRatesList from "../../components/ecommerce/analytics/ConversionRatesList";
-import SubjectPerformanceRadar from "../../components/ecommerce/analytics/SubjectPerformanceRadar";
 import LatestNewsCard from "../../components/ecommerce/analytics/LatestNewsCard";
 import OrderTimelineCard from "../../components/ecommerce/analytics/OrderTimelineCard";
+import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
+
+import PassFailRateChart from "../../components/ecommerce/PassFailRateChart";
+import HighestLowestScoreChart from "../../components/ecommerce/HighestLowestScoreChart";
+import ClassAverageComparisonChart from "../../components/ecommerce/ClassAverageComparisonChart";
+import GradeDistributionChart from "../../components/ecommerce/GradeDistributionChart";
+import TopFailingSubjectsChart from "../../components/ecommerce/TopFailingSubjectsChart";
 
 const statCards = [
   {
@@ -65,12 +71,6 @@ export default function EcommerceAnalytics() {
       <PageBreadcrumb pageTitle="Ecommerce Analytics" />
 
       <div className="space-y-6">
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {statCards.map((card) => (
-            <AnalyticsStatCard key={card.title} {...card} />
-          ))}
-        </section>
-
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
           <CurrentVisitsDonut className="xl:col-span-5" />
           <WebsiteVisitsColumnChart className="xl:col-span-7" />
@@ -78,12 +78,129 @@ export default function EcommerceAnalytics() {
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
           <ConversionRatesList className="xl:col-span-7" />
-          <SubjectPerformanceRadar className="xl:col-span-5" />
-        </section>
+          <div className="space-y-6">
+            {/* Main grid: left area (filters, KPIs, academic charts) and right side MonthlyTarget */}
+            <section className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className=" flex flex-wrap items-center gap-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600">Lớp</label>
+                  <select className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
+                    <option>CNTT K59</option>
+                    <option>CNTT K60</option>
+                    <option>Mạng K59</option>
+                  </select>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600">Semester</label>
+                  <select className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
+                    <option>HK1 22-23</option>
+                    <option>HK2 22-23</option>
+                    <option>HK1 23-24</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <div className="lg:col-span-3">
+                  {/* Filters */}
 
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-          <LatestNewsCard className="lg:col-span-7" />
-          <OrderTimelineCard className="lg:col-span-5" />
+                  {/* KPI stat cards */}
+                  <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-3">
+                    {statCards.map((card) => (
+                      <AnalyticsStatCard key={card.title} {...card} />
+                    ))}
+                  </div>
+
+                  {/* Academic Advisor charts: two rows of three cards, full width of left area */}
+                  <div className="grid grid-cols-1 gap-6 mt-8 md:grid-cols-3">
+                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                        Pass / Fail Rate
+                      </h3>
+                      <div className="h-52">
+                        <PassFailRateChart className="h-52" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                        Highest & Lowest Scores
+                      </h3>
+                      <div className="h-52">
+                        <HighestLowestScoreChart className="h-52" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                        Class Average Comparison
+                      </h3>
+                      <div className="h-52">
+                        <ClassAverageComparisonChart className="h-52" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                        Grade Distribution (Donut)
+                      </h3>
+                      <div className="h-52">
+                        <GradeDistributionChart className="h-52" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                        Current Visits
+                      </h3>
+                      <div className="h-52">
+                        <CurrentVisitsDonut className="h-52" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                        Top Failing Subjects
+                      </h3>
+                      <div className="h-52">
+                        <TopFailingSubjectsChart className="h-52" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right column: MonthlyTarget aligned with the left area height */}
+                <div className="lg:col-span-1 mt-12">
+                  <div className="lg:sticky lg:top-6">
+                    <MonthlyTarget />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Monthly Sales + Statistics (full width) */}
+            <section className="grid grid-cols-1 gap-6">
+              <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                  Monthly Sales
+                </h3>
+                <WebsiteVisitsColumnChart className="h-72" />
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-6 mt-8">
+              <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
+                <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
+                  Statistics
+                </h3>
+                <ConversionRatesList />
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+              <LatestNewsCard className="lg:col-span-7" />
+              <OrderTimelineCard className="lg:col-span-5" />
+            </section>
+          </div>
         </section>
       </div>
     </>

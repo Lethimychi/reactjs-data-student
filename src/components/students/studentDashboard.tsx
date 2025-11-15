@@ -1,642 +1,1104 @@
-import React, { useState } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart } from 'recharts';
-import { User, GraduationCap, TrendingUp, Award, BookOpen, Target, Users, ChevronRight } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  ComposedChart,
+  ScatterChart,
+  Scatter,
+} from "recharts";
+import {
+  User,
+  GraduationCap,
+  TrendingUp,
+  Award,
+  BookOpen,
+  Target,
+} from "lucide-react";
 
-// Mock Data for 3 students
-export const studentsData = [
-  {
-    id: 1,
-    info: {
-      id: "SV2021001234",
-      name: "Nguyễn Văn An",
-      class: "CNTT K65",
-      area: "Hà Nội"
-    },
-    overallGPA: 3.58,
-    gpaData: [
-      { semester: "HK1", year: "2021-2022", gpa: 3.2, rank: "Khá" },
-      { semester: "HK2", year: "2021-2022", gpa: 3.4, rank: "Khá" },
-      { semester: "HK1", year: "2022-2023", gpa: 3.5, rank: "Khá" },
-      { semester: "HK2", year: "2022-2023", gpa: 3.7, rank: "Giỏi" },
-      { semester: "HK1", year: "2023-2024", gpa: 3.8, rank: "Giỏi" },
-      { semester: "HK2", year: "2023-2024", gpa: 3.9, rank: "Giỏi" }
-    ],
-    passRateData: [
-      { semester: "HK1 21-22", passed: 4, failed: 1, total: 5 },
-      { semester: "HK2 21-22", passed: 5, failed: 0, total: 5 },
-      { semester: "HK1 22-23", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 22-23", passed: 5, failed: 0, total: 5 },
-      { semester: "HK1 23-24", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 23-24", passed: 6, failed: 0, total: 6 }
-    ],
-    detailedScores: {
-      1: [
-        { course: "Toán cao cấp A1", score: 7.5, credits: 4, status: "Đậu" },
-        { course: "Vật lý đại cương", score: 6.8, credits: 3, status: "Đậu" },
-        { course: "Lập trình C", score: 8.2, credits: 4, status: "Đậu" },
-        { course: "Anh văn 1", score: 7.0, credits: 2, status: "Đậu" },
-        { course: "Giáo dục thể chất", score: 4.5, credits: 1, status: "Rớt" }
-      ],
-      2: [
-        { course: "Toán cao cấp A2", score: 7.8, credits: 4, status: "Đậu" },
-        { course: "Cấu trúc dữ liệu", score: 8.5, credits: 4, status: "Đậu" },
-        { course: "Lập trình hướng đối tượng", score: 8.0, credits: 4, status: "Đậu" },
-        { course: "Anh văn 2", score: 7.5, credits: 2, status: "Đậu" },
-        { course: "Triết học Mác-Lênin", score: 7.2, credits: 2, status: "Đậu" }
-      ],
-      3: [
-        { course: "Cơ sở dữ liệu", score: 8.5, credits: 4, status: "Đậu" },
-        { course: "Mạng máy tính", score: 8.0, credits: 3, status: "Đậu" },
-        { course: "Thuật toán", score: 8.8, credits: 4, status: "Đậu" },
-        { course: "Kinh tế chính trị", score: 7.5, credits: 2, status: "Đậu" },
-        { course: "Kỹ năng mềm", score: 8.0, credits: 2, status: "Đậu" }
-      ],
-      4: [
-        { course: "Phân tích thiết kế hệ thống", score: 9.0, credits: 4, status: "Đậu" },
-        { course: "Lập trình Web", score: 8.7, credits: 4, status: "Đậu" },
-        { course: "Trí tuệ nhân tạo", score: 8.5, credits: 3, status: "Đậu" },
-        { course: "Lịch sử Đảng", score: 7.8, credits: 2, status: "Đậu" },
-        { course: "An ninh mạng", score: 8.2, credits: 3, status: "Đậu" }
-      ],
-      5: [
-        { course: "Học máy", score: 9.2, credits: 4, status: "Đậu" },
-        { course: "Phát triển ứng dụng di động", score: 8.8, credits: 4, status: "Đậu" },
-        { course: "Cloud Computing", score: 8.5, credits: 3, status: "Đậu" },
-        { course: "Quản trị dự án", score: 8.0, credits: 2, status: "Đậu" },
-        { course: "Pháp luật đại cương", score: 7.5, credits: 2, status: "Đậu" }
-      ],
-      6: [
-        { course: "Blockchain", score: 9.5, credits: 3, status: "Đậu" },
-        { course: "IoT", score: 9.0, credits: 3, status: "Đậu" },
-        { course: "Big Data", score: 9.2, credits: 4, status: "Đậu" },
-        { course: "Khởi nghiệp", score: 8.5, credits: 2, status: "Đậu" },
-        { course: "Đồ án tốt nghiệp", score: 9.8, credits: 10, status: "Đậu" }
-      ]
-    },
-    trainingScoreData: [
-      { semester: "HK1 21-22", score: 85 },
-      { semester: "HK2 21-22", score: 88 },
-      { semester: "HK1 22-23", score: 90 },
-      { semester: "HK2 22-23", score: 92 },
-      { semester: "HK1 23-24", score: 95 },
-      { semester: "HK2 23-24", score: 97 }
-    ]
-  },
-  {
-    id: 2,
-    info: {
-      id: "SV2021001235",
-      name: "Trần Thị Bình",
-      class: "CNTT K65",
-      area: "TP.HCM"
-    },
-    overallGPA: 3.72,
-    gpaData: [
-      { semester: "HK1", year: "2021-2022", gpa: 3.4, rank: "Khá" },
-      { semester: "HK2", year: "2021-2022", gpa: 3.6, rank: "Giỏi" },
-      { semester: "HK1", year: "2022-2023", gpa: 3.7, rank: "Giỏi" },
-      { semester: "HK2", year: "2022-2023", gpa: 3.8, rank: "Giỏi" },
-      { semester: "HK1", year: "2023-2024", gpa: 3.85, rank: "Giỏi" },
-      { semester: "HK2", year: "2023-2024", gpa: 3.95, rank: "Xuất sắc" }
-    ],
-    passRateData: [
-      { semester: "HK1 21-22", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 21-22", passed: 5, failed: 0, total: 5 },
-      { semester: "HK1 22-23", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 22-23", passed: 5, failed: 0, total: 5 },
-      { semester: "HK1 23-24", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 23-24", passed: 6, failed: 0, total: 6 }
-    ],
-    detailedScores: {
-      1: [
-        { course: "Toán cao cấp A1", score: 8.0, credits: 4, status: "Đậu" },
-        { course: "Vật lý đại cương", score: 7.5, credits: 3, status: "Đậu" },
-        { course: "Lập trình C", score: 8.5, credits: 4, status: "Đậu" },
-        { course: "Anh văn 1", score: 8.2, credits: 2, status: "Đậu" },
-        { course: "Giáo dục thể chất", score: 7.8, credits: 1, status: "Đậu" }
-      ],
-      2: [
-        { course: "Toán cao cấp A2", score: 8.5, credits: 4, status: "Đậu" },
-        { course: "Cấu trúc dữ liệu", score: 9.0, credits: 4, status: "Đậu" },
-        { course: "Lập trình hướng đối tượng", score: 8.8, credits: 4, status: "Đậu" },
-        { course: "Anh văn 2", score: 8.0, credits: 2, status: "Đậu" },
-        { course: "Triết học Mác-Lênin", score: 7.8, credits: 2, status: "Đậu" }
-      ],
-      3: [
-        { course: "Cơ sở dữ liệu", score: 9.0, credits: 4, status: "Đậu" },
-        { course: "Mạng máy tính", score: 8.5, credits: 3, status: "Đậu" },
-        { course: "Thuật toán", score: 9.2, credits: 4, status: "Đậu" },
-        { course: "Kinh tế chính trị", score: 8.0, credits: 2, status: "Đậu" },
-        { course: "Kỹ năng mềm", score: 8.5, credits: 2, status: "Đậu" }
-      ],
-      4: [
-        { course: "Phân tích thiết kế hệ thống", score: 9.2, credits: 4, status: "Đậu" },
-        { course: "Lập trình Web", score: 9.0, credits: 4, status: "Đậu" },
-        { course: "Trí tuệ nhân tạo", score: 9.5, credits: 3, status: "Đậu" },
-        { course: "Lịch sử Đảng", score: 8.2, credits: 2, status: "Đậu" },
-        { course: "An ninh mạng", score: 8.8, credits: 3, status: "Đậu" }
-      ],
-      5: [
-        { course: "Học máy", score: 9.5, credits: 4, status: "Đậu" },
-        { course: "Phát triển ứng dụng di động", score: 9.2, credits: 4, status: "Đậu" },
-        { course: "Cloud Computing", score: 9.0, credits: 3, status: "Đậu" },
-        { course: "Quản trị dự án", score: 8.5, credits: 2, status: "Đậu" },
-        { course: "Pháp luật đại cương", score: 8.0, credits: 2, status: "Đậu" }
-      ],
-      6: [
-        { course: "Blockchain", score: 9.8, credits: 3, status: "Đậu" },
-        { course: "IoT", score: 9.5, credits: 3, status: "Đậu" },
-        { course: "Big Data", score: 9.7, credits: 4, status: "Đậu" },
-        { course: "Khởi nghiệp", score: 9.0, credits: 2, status: "Đậu" },
-        { course: "Đồ án tốt nghiệp", score: 9.9, credits: 10, status: "Đậu" }
-      ]
-    },
-    trainingScoreData: [
-      { semester: "HK1 21-22", score: 90 },
-      { semester: "HK2 21-22", score: 92 },
-      { semester: "HK1 22-23", score: 94 },
-      { semester: "HK2 22-23", score: 96 },
-      { semester: "HK1 23-24", score: 98 },
-      { semester: "HK2 23-24", score: 100 }
-    ]
-  },
-  {
-    id: 3,
-    info: {
-      id: "SV2021001236",
-      name: "Lê Minh Cường",
-      class: "CNTT K65",
-      area: "Đà Nẵng"
-    },
-    overallGPA: 3.25,
-    gpaData: [
-      { semester: "HK1", year: "2021-2022", gpa: 2.8, rank: "Trung bình" },
-      { semester: "HK2", year: "2021-2022", gpa: 3.0, rank: "Trung bình" },
-      { semester: "HK1", year: "2022-2023", gpa: 3.2, rank: "Khá" },
-      { semester: "HK2", year: "2022-2023", gpa: 3.4, rank: "Khá" },
-      { semester: "HK1", year: "2023-2024", gpa: 3.5, rank: "Khá" },
-      { semester: "HK2", year: "2023-2024", gpa: 3.6, rank: "Giỏi" }
-    ],
-    passRateData: [
-      { semester: "HK1 21-22", passed: 3, failed: 2, total: 5 },
-      { semester: "HK2 21-22", passed: 4, failed: 1, total: 5 },
-      { semester: "HK1 22-23", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 22-23", passed: 5, failed: 0, total: 5 },
-      { semester: "HK1 23-24", passed: 5, failed: 0, total: 5 },
-      { semester: "HK2 23-24", passed: 6, failed: 0, total: 6 }
-    ],
-    detailedScores: {
-      1: [
-        { course: "Toán cao cấp A1", score: 6.5, credits: 4, status: "Đậu" },
-        { course: "Vật lý đại cương", score: 5.8, credits: 3, status: "Đậu" },
-        { course: "Lập trình C", score: 7.0, credits: 4, status: "Đậu" },
-        { course: "Anh văn 1", score: 4.5, credits: 2, status: "Rớt" },
-        { course: "Giáo dục thể chất", score: 4.0, credits: 1, status: "Rớt" }
-      ],
-      2: [
-        { course: "Toán cao cấp A2", score: 7.0, credits: 4, status: "Đậu" },
-        { course: "Cấu trúc dữ liệu", score: 7.5, credits: 4, status: "Đậu" },
-        { course: "Lập trình hướng đối tượng", score: 7.2, credits: 4, status: "Đậu" },
-        { course: "Anh văn 2", score: 6.5, credits: 2, status: "Đậu" },
-        { course: "Triết học Mác-Lênin", score: 4.8, credits: 2, status: "Rớt" }
-      ],
-      3: [
-        { course: "Cơ sở dữ liệu", score: 7.8, credits: 4, status: "Đậu" },
-        { course: "Mạng máy tính", score: 7.5, credits: 3, status: "Đậu" },
-        { course: "Thuật toán", score: 8.0, credits: 4, status: "Đậu" },
-        { course: "Kinh tế chính trị", score: 7.0, credits: 2, status: "Đậu" },
-        { course: "Kỹ năng mềm", score: 7.5, credits: 2, status: "Đậu" }
-      ],
-      4: [
-        { course: "Phân tích thiết kế hệ thống", score: 8.2, credits: 4, status: "Đậu" },
-        { course: "Lập trình Web", score: 8.0, credits: 4, status: "Đậu" },
-        { course: "Trí tuệ nhân tạo", score: 7.8, credits: 3, status: "Đậu" },
-        { course: "Lịch sử Đảng", score: 7.2, credits: 2, status: "Đậu" },
-        { course: "An ninh mạng", score: 7.5, credits: 3, status: "Đậu" }
-      ],
-      5: [
-        { course: "Học máy", score: 8.5, credits: 4, status: "Đậu" },
-        { course: "Phát triển ứng dụng di động", score: 8.2, credits: 4, status: "Đậu" },
-        { course: "Cloud Computing", score: 8.0, credits: 3, status: "Đậu" },
-        { course: "Quản trị dự án", score: 7.5, credits: 2, status: "Đậu" },
-        { course: "Pháp luật đại cương", score: 7.0, credits: 2, status: "Đậu" }
-      ],
-      6: [
-        { course: "Blockchain", score: 8.8, credits: 3, status: "Đậu" },
-        { course: "IoT", score: 8.5, credits: 3, status: "Đậu" },
-        { course: "Big Data", score: 8.7, credits: 4, status: "Đậu" },
-        { course: "Khởi nghiệp", score: 8.0, credits: 2, status: "Đậu" },
-        { course: "Đồ án tốt nghiệp", score: 9.0, credits: 10, status: "Đậu" }
-      ]
-    },
-    trainingScoreData: [
-      { semester: "HK1 21-22", score: 75 },
-      { semester: "HK2 21-22", score: 78 },
-      { semester: "HK1 22-23", score: 82 },
-      { semester: "HK2 22-23", score: 85 },
-      { semester: "HK1 23-24", score: 88 },
-      { semester: "HK2 23-24", score: 90 }
-    ]
-  }
-];
+// Centralized mock data (to avoid exporting constants from component files)
+import {
+  studentsData as studentsDataRaw,
+  semesters as semestersRaw,
+  coursesPerSemester as coursesPerSemesterRaw,
+  comparisonData as comparisonDataRaw,
+} from "../../data/studentsMock";
 
-export const semesters = [
-  { id: 1, name: "HK1 2021-2022", year: "2021-2022" },
-  { id: 2, name: "HK2 2021-2022", year: "2021-2022" },
-  { id: 3, name: "HK1 2022-2023", year: "2022-2023" },
-  { id: 4, name: "HK2 2022-2023", year: "2022-2023" },
-  { id: 5, name: "HK1 2023-2024", year: "2023-2024" },
-  { id: 6, name: "HK2 2023-2024", year: "2023-2024" }
-];
-
-export const coursesPerSemester = {
-  1: ["Toán cao cấp A1", "Vật lý đại cương", "Lập trình C", "Anh văn 1", "Giáo dục thể chất"],
-  2: ["Toán cao cấp A2", "Cấu trúc dữ liệu", "Lập trình hướng đối tượng", "Anh văn 2", "Triết học Mác-Lênin"],
-  3: ["Cơ sở dữ liệu", "Mạng máy tính", "Thuật toán", "Kinh tế chính trị", "Kỹ năng mềm"],
-  4: ["Phân tích thiết kế hệ thống", "Lập trình Web", "Trí tuệ nhân tạo", "Lịch sử Đảng", "An ninh mạng"],
-  5: ["Học máy", "Phát triển ứng dụng di động", "Cloud Computing", "Quản trị dự án", "Pháp luật đại cương"],
-  6: ["Blockchain", "IoT", "Big Data", "Khởi nghiệp", "Đồ án tốt nghiệp"]
+// Types used in this file
+type SemesterGPA = {
+  semester: "HK1" | "HK2";
+  year: string;
+  gpa: number;
+  rank: string;
 };
 
-export const comparisonData = [
-  { course: "Toán cao cấp A1", average: 6.8 },
-  { course: "Vật lý", average: 7.0 },
-  { course: "Lập trình C", average: 7.2 },
-  { course: "Anh văn 1", average: 7.5 },
-  { course: "GDTC", average: 8.0 }
-];
+type PassRate = {
+  semester: string;
+  passed: number;
+  failed: number;
+  total: number;
+};
 
-const StudentDashboard = () => {
-  const [selectedStudent, setSelectedStudent] = useState(1);
-  const [selectedSemester, setSelectedSemester] = useState(1);
-  const [showStudentList, setShowStudentList] = useState(false);
+type Course = {
+  course: string;
+  score: number;
+  credits: number;
+  status: string;
+};
 
-  const currentStudent = studentsData.find(s => s.id === selectedStudent);
+type TrainingScore = { semester: string; score: number };
 
-  const getGradeColor = (gpa) => {
-    if (gpa >= 3.6) return 'text-green-600';
-    if (gpa >= 3.2) return 'text-blue-600';
-    if (gpa >= 2.5) return 'text-yellow-600';
-    return 'text-red-600';
+type Student = {
+  id: number;
+  info: { id: string; name: string; class: string; area: string };
+  overallGPA: number;
+  gpaData: SemesterGPA[];
+  passRateData: PassRate[];
+  detailedScores: Record<number, Course[]>;
+  trainingScoreData: TrainingScore[];
+};
+
+type PredictionPanelProps = {
+  currentStudent: Student;
+  highlightedSubject: string | null;
+  onHighlightSubject: (s: string | null) => void;
+};
+
+const PredictionPanel: React.FC<PredictionPanelProps> = ({
+  currentStudent,
+  highlightedSubject,
+  onHighlightSubject,
+}) => {
+  // Predict only the next semester's GPA (simple heuristic) and subject grades
+  const lastActualGpa =
+    currentStudent.gpaData && currentStudent.gpaData.length
+      ? currentStudent.gpaData[currentStudent.gpaData.length - 1].gpa
+      : 0;
+
+  // Simple heuristic: small improvement over last GPA, capped at 4.0
+  const predictedGpaNext = Math.min(
+    4,
+    Number((lastActualGpa + 0.05).toFixed(2))
+  );
+
+  // Mock predicted subject grades for the next semester (scale 0-10)
+  const predictedSubjects = [
+    { subject: "Toán cao cấp", predicted: 8.6 },
+    { subject: "Lập trình C", predicted: 9.1 },
+    { subject: "Anh văn 1", predicted: 6.3 },
+    { subject: "CSDL", predicted: 8.8 },
+  ];
+
+  const improvementRate = lastActualGpa
+    ? (((predictedGpaNext - lastActualGpa) / lastActualGpa) * 100).toFixed(1)
+    : "0.0";
+
+  // Prepare pie data for predicted GPA (achieved vs remaining)
+  const predictedGpaPie = [
+    { name: "Predicted", value: Number(predictedGpaNext.toFixed(2)) },
+    { name: "Remaining", value: Number((4 - predictedGpaNext).toFixed(2)) },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+        {/* Left: predicted subject scores as horizontal bars (span 2 on large) */}
+        <div className="lg:col-span-2 bg-white rounded-lg p-4 border">
+          <div className="text-sm font-semibold text-slate-700 mb-2">
+            Dự đoán điểm môn học (kỳ tới)
+          </div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                layout="vertical"
+                data={predictedSubjects}
+                margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+                barCategoryGap="30%" // <-- add spacing between subject rows
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" domain={[0, 10]} stroke="#64748b" />
+                <YAxis
+                  type="category"
+                  dataKey="subject"
+                  width={160}
+                  stroke="#64748b"
+                />
+                <Tooltip formatter={(v: number) => `${v.toFixed(1)} điểm`} />
+                <Bar
+                  dataKey="predicted"
+                  name="Dự đoán"
+                  fill="#2563eb"
+                  barSize={12} // thinner horizontal bars
+                >
+                  {predictedSubjects.map((entry, index) => (
+                    <Cell
+                      key={`cell-pred-${index}`}
+                      fill={
+                        highlightedSubject &&
+                        highlightedSubject !== entry.subject
+                          ? "#c7c7c7"
+                          : "#2563eb"
+                      }
+                      style={{ cursor: "pointer" }}
+                      onClick={() =>
+                        onHighlightSubject(
+                          highlightedSubject === entry.subject
+                            ? null
+                            : entry.subject
+                        )
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Right: predicted GPA pie chart */}
+        <div className="bg-white rounded-lg p-4 border flex flex-col items-center justify-center">
+          <div className="text-sm font-semibold text-slate-700 mb-2">
+            Dự đoán GPA (kỳ tới)
+          </div>
+          <div className="w-full h-56 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={predictedGpaPie}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={48}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  <Cell key="cell-0" fill="#7c3aed" />
+                  <Cell key="cell-1" fill="#e2e8f0" />
+                </Pie>
+                <Tooltip
+                  formatter={(value: number, name: string) => [
+                    `${Number(value).toFixed(2)} / 4.0`,
+                    name,
+                  ]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-3xl font-bold text-indigo-700">
+              {predictedGpaNext.toFixed(2)}
+            </div>
+            <div className="text-sm text-slate-600">
+              Trên thang 4.0 · Cải thiện {improvementRate}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Cast centralized mock data into local types
+const studentsData: Student[] = studentsDataRaw as unknown as Student[];
+const semesters = semestersRaw as unknown as {
+  id: number;
+  name: string;
+  year: string;
+}[];
+const coursesPerSemester: Record<number, string[]> =
+  coursesPerSemesterRaw as unknown as Record<number, string[]>;
+const comparisonData: { course: string; average: number }[] =
+  comparisonDataRaw as unknown as { course: string; average: number }[];
+
+const StudentDashboard: React.FC = () => {
+  const [selectedSemester, setSelectedSemester] = useState<number>(1);
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string>("all");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "prediction">(
+    "overview"
+  );
+  const [highlightedSubject, setHighlightedSubject] = useState<string | null>(
+    null
+  );
+
+  const currentStudent = studentsData[0] ?? null;
+
+  // Guard: if for some reason no student found, show a friendly message
+  if (!currentStudent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center text-slate-700">
+          Không tìm thấy sinh viên.
+        </div>
+      </div>
+    );
+  }
+
+  const getGradeRank = (gpa: number) => {
+    if (gpa >= 3.6) return "Giỏi";
+    if (gpa >= 3.2) return "Khá";
+    if (gpa >= 2.5) return "Trung bình";
+    return "Yếu";
   };
 
-  const getGradeRank = (gpa) => {
-    if (gpa >= 3.6) return 'Giỏi';
-    if (gpa >= 3.2) return 'Khá';
-    if (gpa >= 2.5) return 'Trung bình';
-    return 'Yếu';
-  };
+  const currentScores =
+    (currentStudent ? currentStudent.detailedScores[selectedSemester] : []) ||
+    [];
 
-  const currentScores = currentStudent.detailedScores[selectedSemester] || [];
-  const highestScore = currentScores.reduce((max, item) => item.score > max.score ? item : max, currentScores[0]);
-  const lowestScore = currentScores.reduce((min, item) => item.score < min.score ? item : min, currentScores[0]);
+  const totalPassedCourses = currentStudent
+    ? currentStudent.passRateData.reduce((sum, item) => sum + item.passed, 0)
+    : 0;
+  const totalCourses = currentStudent
+    ? currentStudent.passRateData.reduce((sum, item) => sum + item.total, 0)
+    : 0;
+  const overallPassRate = totalCourses
+    ? ((totalPassedCourses / totalCourses) * 100).toFixed(1)
+    : "0.0";
 
-  const totalPassed = currentStudent.passRateData.reduce((sum, item) => sum + item.passed, 0);
-  const totalCourses = currentStudent.passRateData.reduce((sum, item) => sum + item.total, 0);
-  const overallPassRate = ((totalPassed / totalCourses) * 100).toFixed(1);
-
-  // Prepare comparison data with student score
-  const comparisonWithStudent = comparisonData.map(item => ({
-    ...item,
-    student: currentStudent.detailedScores[1].find(s => s.course.includes(item.course.split(' ')[0]))?.score || 0
+  // Build chart data with two 'passed' series so we can control rounding per-semester
+  const passChartData = currentStudent.passRateData.map((d) => ({
+    ...d,
+    passedRounded: d.failed === 0 ? d.passed : 0,
+    passedNormal: d.failed > 0 ? d.passed : 0,
   }));
+
+  // Prepare comparison data with student score (for selected semester)
+  const comparisonWithStudent = comparisonData.map((item) => ({
+    ...item,
+    student:
+      currentStudent?.detailedScores?.[selectedSemester]?.find((s) =>
+        s.course.includes(item.course.split(" ")[0])
+      )?.score || 0,
+  }));
+
+  // Calculate GPA vs Training Score correlation data
+  const correlationData = currentStudent.gpaData.map((g) => {
+    const yearShort =
+      g.year.split("-")[0].slice(-2) +
+      "-" +
+      (Number(g.year.split("-")[1]) - 2000);
+    const semKey = `${g.semester} ${yearShort}`;
+    const train =
+      currentStudent.trainingScoreData.find((t) => t.semester === semKey)
+        ?.score ?? 0;
+    return {
+      semester: semKey,
+      gpa: g.gpa,
+      trainingScore: train,
+    };
+  });
+
+  // Calculate subject grade distribution
+  const gradeLabel = (score: number): "Giỏi" | "Khá" | "Trung bình" | "Yếu" => {
+    if (score >= 8.5) return "Giỏi";
+    if (score >= 7.0) return "Khá";
+    if (score >= 5.5) return "Trung bình";
+    return "Yếu";
+  };
+
+  const gradeCounts = { Giỏi: 0, Khá: 0, "Trung bình": 0, Yếu: 0 };
+
+  // Scope grade counts to the selected semester
+  const semesterCoursesForGrades =
+    currentStudent.detailedScores[selectedSemester] || [];
+  semesterCoursesForGrades.forEach((c) => {
+    if (c.status === "Đậu") {
+      gradeCounts[gradeLabel(c.score)]++;
+    }
+  });
+
+  const totalPassed = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
+  const gradeDistributionData = Object.entries(gradeCounts).map(
+    ([label, value]) => ({
+      name: label as keyof typeof gradeCounts,
+      value,
+      percentage: totalPassed ? ((value / totalPassed) * 100).toFixed(1) : "0",
+    })
+  );
+
+  const GRADE_COLORS = {
+    Giỏi: "#10b981",
+    Khá: "#3b82f6",
+    "Trung bình": "#f59e0b",
+    Yếu: "#ef4444",
+  };
+
+  // Build per-semester highest/lowest dataset based on actual scores
+  const highestLowestData = semesters.map((sem) => {
+    const list = currentStudent.detailedScores[sem.id] || [];
+    if (!list || !list.length) {
+      return {
+        semester: sem.name || "",
+        highestScore: 0,
+        highestSubject: "",
+        highestCredits: 0,
+        lowestScore: 0,
+        lowestSubject: "",
+        lowestCredits: 0,
+      };
+    }
+    const highest = list.reduce(
+      (acc, cur) => (cur.score > acc.score ? cur : acc),
+      list[0]
+    );
+    const lowest = list.reduce(
+      (acc, cur) => (cur.score < acc.score ? cur : acc),
+      list[0]
+    );
+    return {
+      semester: sem.name || "",
+      highestScore: highest.score,
+      highestSubject: highest.course,
+      highestCredits: highest.credits,
+      lowestScore: lowest.score,
+      lowestSubject: lowest.course,
+      lowestCredits: lowest.credits,
+    };
+  });
+
+  // selectedSemesterName removed — previously used for per-bar stroke highlighting
+
+  // (Pass/Fail by semester calculation removed — not used in simplified mock)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Student List Toggle Button */}
-        <button
-          onClick={() => setShowStudentList(!showStudentList)}
-          className="mb-4 flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        >
-          <Users className="w-5 h-5" />
-          {showStudentList ? 'Ẩn danh sách sinh viên' : 'Xem danh sách sinh viên'}
-        </button>
+        {/* Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSelectedTab("overview")}
+            className={`px-4 py-2 rounded-lg font-semibold transition ${
+              selectedTab === "overview"
+                ? "bg-white shadow-md"
+                : "bg-transparent"
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setSelectedTab("prediction")}
+            className={`px-4 py-2 rounded-lg font-semibold transition ${
+              selectedTab === "prediction"
+                ? "bg-white shadow-md"
+                : "bg-transparent"
+            }`}
+          >
+            Future Performance Prediction
+          </button>
+        </div>
 
-        {/* Student List Table */}
-        {showStudentList && (
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-slate-200 mb-6">
-            <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Users className="w-7 h-7 text-purple-600" />
-              Danh sách sinh viên
+        {/* Prediction tab content */}
+        {selectedTab === "prediction" && (
+          <div className="bg-white rounded-2xl shadow-xl p-6 border border-slate-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">
+              Dự đoán hiệu suất tương lai
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left rounded-tl-xl">MSSV</th>
-                    <th className="px-6 py-4 text-left">Họ và tên</th>
-                    <th className="px-6 py-4 text-left">Lớp</th>
-                    <th className="px-6 py-4 text-left">Khu vực</th>
-                    <th className="px-6 py-4 text-center">GPA</th>
-                    <th className="px-6 py-4 text-center">Học lực</th>
-                    <th className="px-6 py-4 text-center">Tỷ lệ đậu</th>
-                    <th className="px-6 py-4 text-center rounded-tr-xl">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {studentsData.map((student) => {
-                    const passed = student.passRateData.reduce((sum, item) => sum + item.passed, 0);
-                    const total = student.passRateData.reduce((sum, item) => sum + item.total, 0);
-                    const passRate = ((passed / total) * 100).toFixed(1);
-                    
-                    return (
-                      <tr 
-                        key={student.id} 
-                        className={`hover:bg-blue-50 transition-colors ${selectedStudent === student.id ? 'bg-blue-100' : ''}`}
-                      >
-                        <td className="px-6 py-4 font-mono text-sm text-slate-700">{student.info.id}</td>
-                        <td className="px-6 py-4 font-semibold text-slate-800">{student.info.name}</td>
-                        <td className="px-6 py-4 text-slate-600">{student.info.class}</td>
-                        <td className="px-6 py-4 text-slate-600">{student.info.area}</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`font-bold text-lg ${getGradeColor(student.overallGPA)}`}>
-                            {student.overallGPA.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            student.overallGPA >= 3.6 ? 'bg-green-100 text-green-700' :
-                            student.overallGPA >= 3.2 ? 'bg-blue-100 text-blue-700' :
-                            student.overallGPA >= 2.5 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {getGradeRank(student.overallGPA)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="font-semibold text-green-600">{passRate}%</span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => {
-                              setSelectedStudent(student.id);
-                              setShowStudentList(false);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all hover:scale-105 flex items-center gap-2 mx-auto"
-                          >
-                            Xem chi tiết
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {/* Mock predicted data (local to the component) */}
+            {/* Predicted GPA trend for next 4 semesters */}
+            {/** Note: scale uses 0-4.0 like GPA */}
+            <PredictionPanel
+              currentStudent={currentStudent}
+              highlightedSubject={highlightedSubject}
+              onHighlightSubject={(s) => setHighlightedSubject(s)}
+            />
           </div>
         )}
-
-        {/* Header - Student Info */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
-          <div className="flex items-center gap-6">
-            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl">
-              <User className="w-12 h-12 text-white" />
+        {/* Header - Student Info (Overview only) */}
+        {selectedTab === "overview" && (
+          <>
+            <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+              <div className="flex items-center gap-6">
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl">
+                  <User className="w-12 h-12 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                    {currentStudent.info.name}
+                  </h1>
+                  <div className="flex gap-6 text-slate-600">
+                    <span className="flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5" />
+                      <strong>MSSV:</strong> {currentStudent.info.id}
+                    </span>
+                    <span>
+                      <strong>Lớp:</strong> {currentStudent.info.class}
+                    </span>
+                    <span>
+                      <strong>Khu vực:</strong> {currentStudent.info.area}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">{currentStudent.info.name}</h1>
-              <div className="flex gap-6 text-slate-600">
-                <span className="flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5" />
-                  <strong>MSSV:</strong> {currentStudent.info.id}
+
+            {/* Semester Selection */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <BookOpen className="w-6 h-6 text-blue-600" />
+                  Thông tin học kỳ
+                </h2>
+                <span className="text-sm text-slate-600 bg-blue-100 px-4 py-2 rounded-full font-semibold">
+                  Tổng: {semesters.length} học kỳ
                 </span>
-                <span><strong>Lớp:</strong> {currentStudent.info.class}</span>
-                <span><strong>Khu vực:</strong> {currentStudent.info.area}</span>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-slate-500 mb-1">GPA Tích lũy</div>
-              <div className={`text-4xl font-bold ${getGradeColor(currentStudent.overallGPA)}`}>
-                {currentStudent.overallGPA.toFixed(2)}
-              </div>
-              <div className="text-sm text-slate-600 font-semibold mt-1">
-                {getGradeRank(currentStudent.overallGPA)}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Semester Selection */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-blue-600" />
-              Thông tin học kỳ
-            </h2>
-            <span className="text-sm text-slate-600 bg-blue-100 px-4 py-2 rounded-full font-semibold">
-              Tổng: {semesters.length} học kỳ
-            </span>
-          </div>
-          
-          <select 
-            className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            value={selectedSemester}
-            onChange={(e) => setSelectedSemester(Number(e.target.value))}
-          >
-            {semesters.map(sem => (
-              <option key={sem.id} value={sem.id}>{sem.name}</option>
-            ))}
-          </select>
-          
-          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-            <h3 className="font-semibold text-slate-700 mb-3">Môn học trong kỳ:</h3>
-            <div className="flex flex-wrap gap-2">
-              {coursesPerSemester[selectedSemester]?.map((course, idx) => (
-                <span key={idx} className="bg-white px-4 py-2 rounded-lg text-sm text-slate-700 shadow-sm border border-slate-200">
-                  {course}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* GPA Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-              Xu hướng GPA theo học kỳ
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={currentStudent.gpaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="semester" stroke="#64748b" />
-                <YAxis domain={[0, 4]} stroke="#64748b" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="gpa" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 6 }} name="GPA" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Award className="w-6 h-6 text-purple-600" />
-              GPA Trung bình
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'GPA đạt được', value: currentStudent.overallGPA },
-                    { name: 'Còn lại', value: 4 - currentStudent.overallGPA }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  <Cell fill="#3b82f6" />
-                  <Cell fill="#e2e8f0" />
-                </Pie>
-                <Tooltip 
-                  formatter={(value) => value.toFixed(2)}
-                  contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="text-center mt-4">
-              <div className="text-3xl font-bold text-blue-600">{currentStudent.overallGPA.toFixed(2)}/4.0</div>
-              <div className="text-sm text-slate-600 mt-1">Học lực: <span className="font-bold">{getGradeRank(currentStudent.overallGPA)}</span></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pass Rate */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Target className="w-6 h-6 text-green-600" />
-              Tỷ lệ đậu/rớt môn học
-            </h2>
-            <div className="bg-green-100 px-6 py-3 rounded-xl">
-              <div className="text-sm text-green-700">Tỷ lệ qua môn toàn khóa</div>
-              <div className="text-3xl font-bold text-green-600">{overallPassRate}%</div>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={currentStudent.passRateData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="semester" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px' }}
-              />
-              <Legend />
-              <Bar dataKey="passed" fill="#10b981" name="Đậu" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="failed" fill="#ef4444" name="Rớt" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Highest & Lowest Scores */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-white/20 p-3 rounded-xl">
-                <Award className="w-8 h-8" />
-              </div>
-              <div>
-                <div className="text-sm opacity-90">Điểm cao nhất</div>
-                <div className="text-3xl font-bold">{highestScore?.score}</div>
-              </div>
-            </div>
-            <div className="text-lg font-semibold mt-2">{highestScore?.course}</div>
-            <div className="text-sm opacity-90 mt-1">{highestScore?.credits} tín chỉ</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg p-6 text-white">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-white/20 p-3 rounded-xl">
-                <TrendingUp className="w-8 h-8 rotate-180" />
-              </div>
-              <div>
-                <div className="text-sm opacity-90">Điểm thấp nhất</div>
-                <div className="text-3xl font-bold">{lowestScore?.score}</div>
-              </div>
-            </div>
-            <div className="text-lg font-semibold mt-2">{lowestScore?.course}</div>
-            <div className="text-sm opacity-90 mt-1">{lowestScore?.credits} tín chỉ</div>
-          </div>
-        </div>
-
-        {/* Detailed Scores Table */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Bảng điểm chi tiết - {semesters.find(s => s.id === selectedSemester)?.name}</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-                <tr>
-                  <th className="px-6 py-4 text-left rounded-tl-xl">Môn học</th>
-                  <th className="px-6 py-4 text-center">Tín chỉ</th>
-                  <th className="px-6 py-4 text-center">Điểm</th>
-                  <th className="px-6 py-4 text-center rounded-tr-xl">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {currentScores.map((score, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-800">{score.course}</td>
-                    <td className="px-6 py-4 text-center text-slate-600">{score.credits}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`font-bold ${score.score >= 8 ? 'text-green-600' : score.score >= 5 ? 'text-blue-600' : 'text-red-600'}`}>
-                        {score.score}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-4 py-1 rounded-full text-sm font-semibold ${score.status === 'Đậu' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {score.status}
-                      </span>
-                    </td>
-                  </tr>
+              <select
+                className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(Number(e.target.value))}
+              >
+                {semesters.map((sem) => (
+                  <option key={sem.id} value={sem.id}>
+                    {sem.name}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </select>
 
-        {/* Comparison with Average */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">So sánh với điểm trung bình lớp (HK1)</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={comparisonWithStudent}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="course" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px' }}
-              />
-              <Legend />
-              <Bar dataKey="student" fill="#3b82f6" name="Điểm của bạn" radius={[8, 8, 0, 0]} />
-              <Line type="monotone" dataKey="average" stroke="#ef4444" strokeWidth={3} name="Điểm TB lớp" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+                <h3 className="font-semibold text-slate-700 mb-3">
+                  Môn học trong kỳ:
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {coursesPerSemester[selectedSemester]?.map((course, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-white px-4 py-2 rounded-lg text-sm text-slate-700 shadow-sm border border-slate-200"
+                    >
+                      {course}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-        {/* Training Score */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Điểm rèn luyện qua các học kỳ</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={currentStudent.trainingScoreData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="semester" stroke="#64748b" />
-              <YAxis domain={[0, 100]} stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '12px' }}
-              />
-              <Bar dataKey="score" fill="#8b5cf6" name="Điểm rèn luyện" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            {/* GPA Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                  Xu hướng GPA theo học kỳ
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={currentStudent.gpaData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="semester" stroke="#64748b" />
+                    <YAxis domain={[0, 4]} stroke="#64748b" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "12px",
+                      }}
+                      labelStyle={{ fontWeight: "bold", color: "#1e293b" }}
+                      formatter={(
+                        value: number,
+                        _name: string,
+                        props: { payload?: { rank?: string } }
+                      ) => [
+                        `${value.toFixed(2)} (${props.payload?.rank ?? ""})`,
+                        "GPA",
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="gpa"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={{ fill: "#3b82f6", r: 6, cursor: "pointer" }}
+                      activeDot={{ r: 8, cursor: "pointer" }}
+                      name="GPA"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
 
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <Award className="w-6 h-6 text-purple-600" />
+                  GPA Trung bình
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        {
+                          name: "GPA đạt được",
+                          value: currentStudent.overallGPA,
+                        },
+                        {
+                          name: "Còn lại",
+                          value: 4 - currentStudent.overallGPA,
+                        },
+                      ]}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                      onClick={(data) => {
+                        console.log("Clicked GPA donut segment:", data);
+                      }}
+                    >
+                      <Cell fill="#3b82f6" style={{ cursor: "pointer" }} />
+                      <Cell fill="#e2e8f0" style={{ cursor: "pointer" }} />
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number | string, name: string) => [
+                        `${Number(value).toFixed(2)} / 4.0`,
+                        name,
+                      ]}
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "12px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="text-center mt-4">
+                  <div className="text-3xl font-bold text-blue-600">
+                    {currentStudent.overallGPA.toFixed(2)}/4.0
+                  </div>
+                  <div className="text-sm text-slate-600 mt-1">
+                    Học lực:{" "}
+                    <span className="font-bold">
+                      {getGradeRank(currentStudent.overallGPA)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Detailed Scores Table */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">
+                Bảng điểm chi tiết -{" "}
+                {semesters.find((s) => s.id === selectedSemester)?.name}
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left rounded-tl-xl">
+                        Môn học
+                      </th>
+                      <th className="px-6 py-4 text-center">Tín chỉ</th>
+                      <th className="px-6 py-4 text-center">Điểm</th>
+                      <th className="px-6 py-4 text-center rounded-tr-xl">
+                        Trạng thái
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {currentScores.map((score, idx) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-blue-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 font-medium text-slate-800">
+                          {score.course}
+                        </td>
+                        <td className="px-6 py-4 text-center text-slate-600">
+                          {score.credits}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className={`font-bold ${
+                              score.score >= 8
+                                ? "text-green-600"
+                                : score.score >= 5
+                                ? "text-blue-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {score.score}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className={`px-4 py-1 rounded-full text-sm font-semibold ${
+                              score.status === "Đậu"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {score.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              {/* Pass Rate */}
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <Target className="w-6 h-6 text-green-600" />
+                    Tỷ lệ Đậu/Rớt theo Học kỳ (Tín chỉ)
+                  </h2>
+                  <div className="bg-green-100 px-3 py-3 rounded-lg text-center w-54">
+                    <div className="text-sm text-green-700">
+                      Tỷ lệ qua môn toàn khóa
+                    </div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {overallPassRate}%
+                    </div>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={400}>
+                  {/* Chart data prepared earlier as `passChartData` */}
+                  <BarChart
+                    data={passChartData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                    barCategoryGap="40%" // more spacing between semesters
+                    barGap={8} // spacing between stacked/grouped bars
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="semester"
+                      stroke="#64748b"
+                      label={{
+                        value: "Học kỳ",
+                        position: "insideBottom",
+                        offset: -10,
+                        style: { fill: "#64748b", fontWeight: "bold" },
+                      }}
+                    />
+                    <YAxis
+                      stroke="#64748b"
+                      label={{
+                        value: "Số môn học",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fill: "#64748b", fontWeight: "bold" },
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "12px",
+                        padding: "12px",
+                      }}
+                      formatter={(
+                        value: number,
+                        name: string,
+                        props: { payload?: { total?: number } }
+                      ) => {
+                        const total = props.payload?.total ?? 0;
+                        const percentage =
+                          total > 0 ? ((value / total) * 100).toFixed(1) : "0";
+                        if (name === "Đậu") {
+                          return [`${value} môn (${percentage}%)`, "Đậu"];
+                        }
+                        return [`${value} môn (${percentage}%)`, "Rớt"];
+                      }}
+                      labelFormatter={(label) => `Học kỳ: ${label}`}
+                    />
+                    <Legend
+                      formatter={(value) => (
+                        <span style={{ color: "#64748b", cursor: "pointer" }}>
+                          {value}
+                        </span>
+                      )}
+                      onClick={(e) => {
+                        console.log("Legend clicked:", e.value);
+                      }}
+                      wrapperStyle={{ paddingTop: "20px" }}
+                    />
+                    {/* Render passed bars in two layers:
+                        - topRoundedPassedData: semesters with no failed courses -> rounded top corners
+                        - normalPassedData: semesters with failed courses -> no rounding (lower segment)
+                        This avoids double-rounded visuals while keeping passed-only bars rounded. */}
+                    <Bar
+                      dataKey="passed"
+                      stackId="a"
+                      fill="#10b981"
+                      barSize={14}
+                      name="Đậu"
+                      style={{ cursor: "pointer" }}
+                    >
+                      {passChartData.map((d, idx) =>
+                        d.failed === 0 ? (
+                          <Cell key={idx} fill="#10b981" />
+                        ) : (
+                          <Cell key={idx} fill="#10b981" />
+                        )
+                      )}
+                    </Bar>
+                    <Bar
+                      dataKey="failed"
+                      stackId="a"
+                      fill="#ef4444"
+                      name="Rớt"
+                      // top segment should have rounded top corners when present
+
+                      barSize={14}
+                      style={{ cursor: "pointer" }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Pass/Fail Course Rate by Semester and Academic Year */}
+
+              {/* Highest & Lowest Scores (Grouped by Semester) */}
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
+                <div className="flex items-center justify-between mb-4 mt-6">
+                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 ">
+                    <Award className="w-6 h-6 text-indigo-600" />
+                    Hiệu suất theo học kỳ (Cao nhất vs Thấp nhất)
+                  </h2>
+                </div>
+
+                <div className="w-full h-80 mt-25">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={highestLowestData}
+                      margin={{ top: 10, right: 24, left: 0, bottom: 20 }}
+                      barCategoryGap="40%" // space groups out more
+                      barGap={10} // spacing between the two bars in a group
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="semester" stroke="#64748b" />
+                      <YAxis domain={[0, 10]} stroke="#64748b" />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload || !payload.length)
+                            return null;
+                          return (
+                            <div className="bg-white p-3 rounded shadow">
+                              <div className="font-semibold mb-2">{label}</div>
+                              {payload.map((p) => (
+                                <div
+                                  key={p.dataKey}
+                                  className="text-sm text-slate-700"
+                                >
+                                  <span className="font-semibold">
+                                    {p.name}:
+                                  </span>{" "}
+                                  {p.value} điểm —{" "}
+                                  {
+                                    p.payload[
+                                      p.dataKey === "highestScore"
+                                        ? "highestSubject"
+                                        : "lowestSubject"
+                                    ]
+                                  }{" "}
+                                  (
+                                  {
+                                    p.payload[
+                                      p.dataKey === "highestScore"
+                                        ? "highestCredits"
+                                        : "lowestCredits"
+                                    ]
+                                  }{" "}
+                                  tín chỉ)
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="highestScore"
+                        name="Cao nhất"
+                        fill="#10b981"
+                        barSize={14} // thinner grouped bar
+                      >
+                        {highestLowestData.map((_, idx) => (
+                          <Cell key={`h-${idx}`} fill="#10b981" />
+                        ))}
+                      </Bar>
+                      <Bar
+                        dataKey="lowestScore"
+                        name="Thấp nhất"
+                        fill="#ef4444"
+                        barSize={14} // thinner grouped bar
+                      >
+                        {highestLowestData.map((_, idx) => (
+                          <Cell key={`l-${idx}`} fill="#ef4444" />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+            {/* Comparison with Average */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
+              <h2 className="text-xl font-bold text-slate-800 mb-33 mt-6 flex items-center gap-2 ">
+                So sánh với điểm trung bình lớp
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <ComposedChart data={comparisonWithStudent}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="course" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "2px solid #e2e8f0",
+                      borderRadius: "12px",
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `${value.toFixed(1)} điểm`,
+                      name,
+                    ]}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="student"
+                    fill="#3b82f6"
+                    name="Điểm của bạn"
+                    barSize={30} // thinner bars for comparison
+                    style={{ cursor: "pointer" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="average"
+                    stroke="#ef4444"
+                    strokeWidth={3}
+                    name="Điểm TB lớp"
+                    dot={{ fill: "#ef4444", r: 5, cursor: "pointer" }}
+                    activeDot={{ r: 7, cursor: "pointer" }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Subject Grade Distribution */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Award className="w-6 h-6 text-indigo-600" />
+                  Phân loại môn học
+                </h2>
+                <select
+                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={selectedGradeFilter}
+                  onChange={(e) => setSelectedGradeFilter(e.target.value)}
+                >
+                  <option value="all">Tất cả</option>
+                  <option value="Giỏi">Giỏi</option>
+                  <option value="Khá">Khá</option>
+                  <option value="Trung bình">Trung bình</option>
+                  <option value="Yếu">Yếu</option>
+                </select>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">
+                Tỷ lệ môn học đạt loại Giỏi, Khá, Trung bình, Yếu
+              </p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={gradeDistributionData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        onClick={(data) => {
+                          console.log("Clicked grade category:", data.name);
+                          setSelectedGradeFilter(data.name);
+                        }}
+                      >
+                        {gradeDistributionData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={GRADE_COLORS[entry.name]}
+                            style={{ cursor: "pointer" }}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#fff",
+                          border: "2px solid #e2e8f0",
+                          borderRadius: "12px",
+                        }}
+                        formatter={(
+                          value: number,
+                          _name: string,
+                          props: {
+                            payload?: { percentage?: string; name?: string };
+                          }
+                        ) => [
+                          `${value} môn (${props.payload?.percentage ?? "0"}%)`,
+                          props.payload?.name ?? "",
+                        ]}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        iconType="circle"
+                        formatter={(value) => (
+                          <span style={{ color: "#64748b" }}>{value}</span>
+                        )}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="grid grid-cols-2 gap-4 ">
+                  {gradeDistributionData.map((item) => (
+                    <div
+                      key={item.name}
+                      className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                        selectedGradeFilter === item.name ||
+                        selectedGradeFilter === "all"
+                          ? "scale-105 shadow-lg"
+                          : "opacity-70"
+                      }`}
+                      style={{
+                        borderColor: GRADE_COLORS[item.name],
+                        backgroundColor: `${GRADE_COLORS[item.name]}15`,
+                      }}
+                      onClick={() => setSelectedGradeFilter(item.name)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "scale(1.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "scale(1)";
+                      }}
+                    >
+                      <p
+                        className="font-semibold text-sm mb-1"
+                        style={{ color: GRADE_COLORS[item.name] }}
+                      >
+                        {item.name}
+                      </p>
+                      <p className="text-2xl font-bold text-slate-800">
+                        {item.value}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">môn học</p>
+                      <p className="text-xs font-semibold mt-2 text-slate-700">
+                        {item.percentage}%
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              {/* Training Score */}
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
+                <h2 className="text-xl font-bold text-slate-800 mb-14">
+                  Điểm rèn luyện qua các học kỳ
+                </h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={currentStudent.trainingScoreData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="semester" stroke="#64748b" />
+                    <YAxis domain={[0, 100]} stroke="#64748b" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "12px",
+                      }}
+                      formatter={(value: number) => [
+                        `${value} điểm`,
+                        "Điểm rèn luyện",
+                      ]}
+                    />
+                    <Bar
+                      dataKey="score"
+                      fill="#8b5cf6"
+                      name="Điểm rèn luyện"
+                      barSize={12} // thinner training score bars
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* GPA vs Training Score Correlation */}
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <TrendingUp className="w-6 h-6 text-purple-600" />
+                    Tương quan GPA và Điểm rèn luyện
+                  </h2>
+                </div>
+                <ResponsiveContainer width="100%" height={350}>
+                  <ScatterChart
+                    margin={{ top: 20, right: 30, bottom: 20, left: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis
+                      type="number"
+                      dataKey="gpa"
+                      domain={[2.5, 4]}
+                      label={{
+                        value: "GPA",
+                        position: "insideBottom",
+                        offset: -10,
+                        style: { fill: "#64748b", fontWeight: "bold" },
+                      }}
+                      stroke="#64748b"
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="trainingScore"
+                      domain={[70, 100]}
+                      label={{
+                        value: "Điểm rèn luyện",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fill: "#64748b", fontWeight: "bold" },
+                      }}
+                      stroke="#64748b"
+                    />
+                    <Tooltip
+                      cursor={{ strokeDasharray: "3 3" }}
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "12px",
+                      }}
+                      formatter={(value: number, name: string) => {
+                        if (name === "gpa") return [value.toFixed(2), "GPA"];
+                        return [value, "Điểm rèn luyện"];
+                      }}
+                      labelFormatter={(label) => `Học kỳ: ${label}`}
+                    />
+                    <Scatter data={correlationData} fill="#8b5cf6">
+                      {correlationData.map((_entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill="#8b5cf6"
+                          opacity={0.7}
+                        />
+                      ))}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+                <p className="mt-4 text-sm text-gray-700">
+                  <strong>Nhận xét:</strong>{" "}
+                  <span className="text-green-600 font-semibold">
+                    Tương quan thuận rõ rệt
+                  </span>{" "}
+                  – điểm rèn luyện tăng khi GPA tăng.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
