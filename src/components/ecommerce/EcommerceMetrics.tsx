@@ -6,23 +6,8 @@ import {
   GroupIcon,
 } from "../../icons";
 import Badge from "../ui/badge/Badge";
-import {
-  ResponsiveContainer,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-  ComposedChart,
-  ScatterChart,
-  Scatter,
-} from "recharts";
+
+import MonthlySalesChart from "./MonthlySalesChart";
 
 export default function EcommerceMetrics() {
   const classList = [
@@ -50,48 +35,7 @@ export default function EcommerceMetrics() {
     },
   ];
 
-  const highestLowestData = [
-    { semester: "HK1 22-23", highestScore: 9.2, lowestScore: 4.8 },
-    { semester: "HK2 22-23", highestScore: 9.0, lowestScore: 4.5 },
-    { semester: "HK1 23-24", highestScore: 9.5, lowestScore: 5.0 },
-    { semester: "HK2 23-24", highestScore: 9.6, lowestScore: 5.2 },
-  ];
-
-  const passRateData = [
-    { semester: "HK1 22-23", passed: 22, failed: 6, total: 28 },
-    { semester: "HK2 22-23", passed: 24, failed: 8, total: 32 },
-    { semester: "HK1 23-24", passed: 27, failed: 1, total: 28 },
-    { semester: "HK2 23-24", passed: 30, failed: 2, total: 32 },
-  ];
-
-  const comparisonWithClass = [
-    { course: "Toán cao cấp", student: 6.8, average: 8.5 },
-    { course: "Lập trình C", student: 7.2, average: 8.8 },
-    { course: "Anh văn 1", student: 6.1, average: 6.4 },
-    { course: "CSDL", student: 8.2, average: 7.1 },
-  ];
-
-  const gradeDistribution = [
-    { name: "Giỏi", value: 12 },
-    { name: "Khá", value: 36 },
-    { name: "Trung bình", value: 18 },
-    { name: "Yếu", value: 6 },
-  ];
-
-  const topFailing = [
-    { subject: "Anh văn 1", failRate: 0.12 },
-    { subject: "Toán cao cấp", failRate: 0.08 },
-    { subject: "CSDL", failRate: 0.06 },
-  ];
-
-  const correlationData = [
-    { semester: "HK1 22-23", gpa: 3.1, conduct: 75 },
-    { semester: "HK2 22-23", gpa: 3.25, conduct: 78 },
-    { semester: "HK1 23-24", gpa: 3.4, conduct: 82 },
-    { semester: "HK2 23-24", gpa: 3.45, conduct: 85 },
-  ];
-
-  const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444"];
+  
 
   const shorten = (s: string, max = 12) =>
     s && s.length > max ? s.slice(0, max) + "…" : s;
@@ -171,168 +115,10 @@ export default function EcommerceMetrics() {
         </div>
         {/* <!-- Metric Item End --> */}
       </div>
-
+      
+      <MonthlySalesChart />
       {/* Academic Advisor Dashboard */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold">Academic Advisor Dashboard</h3>
-        </div>
-
-        {/* KPI tiles */}
-
-        {/* Charts grid: Highest vs Lowest, Pass/Fail stacked, Comparison Combo */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-            <h4 className="font-semibold mb-3">
-              Highest vs Lowest Subject Score
-            </h4>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <BarChart data={highestLowestData} margin={{ left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="semester"
-                    tickFormatter={(t) => shorten(String(t), 8)}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="highestScore" fill="#10b981" />
-                  <Bar dataKey="lowestScore" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-            <h4 className="font-semibold mb-3">Pass / Fail Rate (Stacked)</h4>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <BarChart data={passRateData} margin={{ left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="semester"
-                    tickFormatter={(t) => shorten(String(t), 8)}
-                  />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `${value}`} />
-                  <Legend />
-                  <Bar dataKey="passed" stackId="a" fill="#3b82f6" />
-                  <Bar dataKey="failed" stackId="a" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-            <h4 className="font-semibold mb-3">
-              Class vs Student Average (Combo)
-            </h4>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <ComposedChart
-                  data={comparisonWithClass}
-                  margin={{ left: -20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="course"
-                    tickFormatter={(t) => shorten(String(t), 10)}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="student" barSize={16} fill="#3b82f6" />
-                  <Line
-                    type="monotone"
-                    dataKey="average"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Donut / Pie and Scatter and Horizontal Bar */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-            <h4 className="font-semibold mb-3">Grade Distribution (Donut)</h4>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={gradeDistribution}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={50}
-                    outerRadius={80}
-                    fill="#8884d8"
-                  >
-                    {gradeDistribution.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-            <h4 className="font-semibold mb-3">GPA vs Conduct (Scatter)</h4>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <ScatterChart>
-                  <CartesianGrid />
-                  <XAxis
-                    type="number"
-                    dataKey="gpa"
-                    name="GPA"
-                    domain={[2.5, 4]}
-                  />
-                  <YAxis type="number" dataKey="conduct" name="Conduct" />
-                  <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                  <Scatter
-                    name="Students"
-                    data={correlationData}
-                    fill="#3b82f6"
-                  />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-            <h4 className="font-semibold mb-3">
-              Top Failing Subjects (Horizontal)
-            </h4>
-            <div className="text-sm text-gray-500 mb-3">
-              Fail rate by subject
-            </div>
-            <div className="space-y-2">
-              {topFailing.map((t) => (
-                <div key={t.subject} className="w-full">
-                  <div className="flex justify-between mb-1 text-sm">
-                    <div>{shorten(t.subject, 18)}</div>
-                    <div>{Math.round(t.failRate * 100)}%</div>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full">
-                    <div
-                      className="h-2 bg-rose-500 rounded-full"
-                      style={{ width: `${Math.round(t.failRate * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      
     </div>
   );
 }
