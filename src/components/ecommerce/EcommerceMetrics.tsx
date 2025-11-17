@@ -35,18 +35,21 @@ export default function EcommerceMetrics() {
     },
   ];
 
-  
-
   const shorten = (s: string, max = 12) =>
     s && s.length > max ? s.slice(0, max) + "…" : s;
   const [selectedClassId, setSelectedClassId] = useState<number>(
     classList[0]?.id ?? 0
   );
 
+  // prevent unused variable lint during iterative development
+  void shorten;
+  void selectedClassId;
+  void setSelectedClassId;
+
   return (
     <div className="space-y-6">
       {/* Filters row: placed first and horizontal */}
-   
+
       {/* Top ecommerce metrics (kept intact) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
         {/* <!-- Metric Item Start --> */}
@@ -115,10 +118,9 @@ export default function EcommerceMetrics() {
         </div>
         {/* <!-- Metric Item End --> */}
       </div>
-      
+
       <MonthlySalesChart />
       {/* Academic Advisor Dashboard */}
-      
     </div>
   );
 }

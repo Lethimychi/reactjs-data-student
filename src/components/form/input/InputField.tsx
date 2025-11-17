@@ -1,5 +1,4 @@
-import type React from "react";
-import type { FC } from "react";
+import React, { FC, ChangeEvent } from "react";
 
 interface InputProps {
   type?: "text" | "number" | "email" | "password" | "date" | "time" | string;
@@ -7,7 +6,7 @@ interface InputProps {
   name?: string;
   placeholder?: string;
   value?: string | number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   min?: string;
   max?: string;

@@ -370,7 +370,7 @@ const StudentDashboard: React.FC = () => {
   // (Pass/Fail by semester calculation removed — not used in simplified mock)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 rounded-lg">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Tabs */}
         <div className="flex gap-2">

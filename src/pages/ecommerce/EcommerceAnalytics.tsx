@@ -4,15 +4,11 @@ import AnalyticsStatCard from "../../components/ecommerce/analytics/AnalyticsSta
 import CurrentVisitsDonut from "../../components/ecommerce/analytics/CurrentVisitsDonut";
 import WebsiteVisitsColumnChart from "../../components/ecommerce/analytics/WebsiteVisitsColumnChart";
 import ConversionRatesList from "../../components/ecommerce/analytics/ConversionRatesList";
+import SubjectPerformanceRadar from "../../components/ecommerce/analytics/SubjectPerformanceRadar";
 import LatestNewsCard from "../../components/ecommerce/analytics/LatestNewsCard";
 import OrderTimelineCard from "../../components/ecommerce/analytics/OrderTimelineCard";
-import MonthlyTarget from "../../components/ecommerce/MonthlyTarget";
 
-import PassFailRateChart from "../../components/ecommerce/PassFailRateChart";
-import HighestLowestScoreChart from "../../components/ecommerce/HighestLowestScoreChart";
-import ClassAverageComparisonChart from "../../components/ecommerce/ClassAverageComparisonChart";
-import GradeDistributionChart from "../../components/ecommerce/GradeDistributionChart";
-import TopFailingSubjectsChart from "../../components/ecommerce/TopFailingSubjectsChart";
+// charts used elsewhere kept in repo but not shown in this layout
 
 const statCards = [
   {
@@ -70,138 +66,120 @@ export default function EcommerceAnalytics() {
       />
       <PageBreadcrumb pageTitle="Ecommerce Analytics" />
 
-      <div className="space-y-6">
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-          <CurrentVisitsDonut className="xl:col-span-5" />
-          <WebsiteVisitsColumnChart className="xl:col-span-7" />
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-          <ConversionRatesList className="xl:col-span-7" />
-          <div className="space-y-6">
-            {/* Main grid: left area (filters, KPIs, academic charts) and right side MonthlyTarget */}
-            <section className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className=" flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm text-gray-600">Lớp</label>
-                  <select className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
-                    <option>CNTT K59</option>
-                    <option>CNTT K60</option>
-                    <option>Mạng K59</option>
-                  </select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm text-gray-600">Semester</label>
-                  <select className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
-                    <option>HK1 22-23</option>
-                    <option>HK2 22-23</option>
-                    <option>HK1 23-24</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <div className="lg:col-span-3">
-                  {/* Filters */}
-
-                  {/* KPI stat cards */}
-                  <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-3">
-                    {statCards.map((card) => (
-                      <AnalyticsStatCard key={card.title} {...card} />
-                    ))}
-                  </div>
-
-                  {/* Academic Advisor charts: two rows of three cards, full width of left area */}
-                  <div className="grid grid-cols-1 gap-6 mt-8 md:grid-cols-3">
-                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                        Pass / Fail Rate
-                      </h3>
-                      <div className="h-52">
-                        <PassFailRateChart className="h-52" />
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                        Highest & Lowest Scores
-                      </h3>
-                      <div className="h-52">
-                        <HighestLowestScoreChart className="h-52" />
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                        Class Average Comparison
-                      </h3>
-                      <div className="h-52">
-                        <ClassAverageComparisonChart className="h-52" />
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                        Grade Distribution (Donut)
-                      </h3>
-                      <div className="h-52">
-                        <GradeDistributionChart className="h-52" />
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                        Current Visits
-                      </h3>
-                      <div className="h-52">
-                        <CurrentVisitsDonut className="h-52" />
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                      <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                        Top Failing Subjects
-                      </h3>
-                      <div className="h-52">
-                        <TopFailingSubjectsChart className="h-52" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right column: MonthlyTarget aligned with the left area height */}
-                <div className="lg:col-span-1 mt-12">
-                  <div className="lg:sticky lg:top-6">
-                    <MonthlyTarget />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Monthly Sales + Statistics (full width) */}
-            <section className="grid grid-cols-1 gap-6">
-              <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                  Monthly Sales
-                </h3>
-                <WebsiteVisitsColumnChart className="h-72" />
-              </div>
-            </section>
-
-            <section className="grid grid-cols-1 gap-6 mt-8">
-              <div className="bg-white rounded-2xl shadow-md p-4 hover:shadow-lg transition">
-                <h3 className="text-lg font-semibold text-slate-700 mb-3 text-center">
-                  Statistics
-                </h3>
-                <ConversionRatesList />
-              </div>
-            </section>
-
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-              <LatestNewsCard className="lg:col-span-7" />
-              <OrderTimelineCard className="lg:col-span-5" />
-            </section>
+      <div className="space-y-6 bg-slate-50 p-6 rounded-lg">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-slate-500">Hi, Welcome back 👋</p>
+            <h2 className="text-2xl font-semibold text-slate-700 mt-1">
+              Ecommerce & Academic Overview
+            </h2>
           </div>
-        </section>
+        </div>
+
+        {/* Summary KPI cards (4 columns) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          {statCards.map((card) => (
+            <div>
+              <AnalyticsStatCard {...card} />
+            </div>
+          ))}
+        </div>
+
+        {/* Large charts row: Pie (donut) + Bar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          <div className="h-100">
+            <CurrentVisitsDonut className="h-100" />
+          </div>
+
+          <div className="h-100">
+            <WebsiteVisitsColumnChart className="h-100" />
+          </div>
+        </div>
+
+        {/* Medium charts row: Horizontal bar + Radar */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          <div className="h-130">
+            <ConversionRatesList />
+          </div>
+
+          <div className="h-130">
+            <SubjectPerformanceRadar />
+          </div>
+        </div>
+
+        {/* Lists, timeline and news */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5 rounded-2xl p-6 shadow-md hover:shadow-lg transition">
+            <LatestNewsCard />
+          </div>
+          <div className="lg:col-span-7  rounded-2xl p-6 shadow-md hover:shadow-lg transition">
+            <OrderTimelineCard />
+          </div>
+        </div>
+
+        {/* Bottom: Traffic by site and Tasks */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
+          <div className="lg:col-span-4 bg-white rounded-2xl p-5 shadow-md hover:shadow-lg transition">
+            <h3 className="font-semibold text-slate-700 mb-4">
+              Traffic by site
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg border border-gray-100 p-4 text-center">
+                <div className="text-sm text-slate-500">Facebook</div>
+                <div className="mt-2 font-semibold text-slate-700">19.5k</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 p-4 text-center">
+                <div className="text-sm text-slate-500">Google</div>
+                <div className="mt-2 font-semibold text-slate-700">91.2k</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 p-4 text-center">
+                <div className="text-sm text-slate-500">LinkedIn</div>
+                <div className="mt-2 font-semibold text-slate-700">69.8k</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 p-4 text-center">
+                <div className="text-sm text-slate-500">Twitter</div>
+                <div className="mt-2 font-semibold text-slate-700">84.9k</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-8 bg-white rounded-2xl p-5 shadow-md hover:shadow-lg transition">
+            <h3 className="font-semibold text-slate-700 mb-4">Tasks</h3>
+            <div className="space-y-3">
+              <label className="flex items-center space-x-3">
+                <input type="checkbox" className="form-checkbox" />
+                <span className="text-sm text-slate-700">
+                  Prepare Monthly Financial Report
+                </span>
+              </label>
+              <label className="flex items-center space-x-3">
+                <input type="checkbox" className="form-checkbox" />
+                <span className="text-sm text-slate-700">
+                  Design New Marketing Campaign
+                </span>
+              </label>
+              <label className="flex items-center space-x-3">
+                <input type="checkbox" className="form-checkbox" />
+                <span className="text-sm text-slate-700">
+                  Analyze Customer Feedback
+                </span>
+              </label>
+              <label className="flex items-center space-x-3">
+                <input type="checkbox" className="form-checkbox" />
+                <span className="text-sm text-slate-700">
+                  Update Website Content
+                </span>
+              </label>
+              <label className="flex items-center space-x-3">
+                <input type="checkbox" className="form-checkbox" />
+                <span className="text-sm text-slate-700">
+                  Conduct Market Research
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

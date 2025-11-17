@@ -11,11 +11,20 @@ export default function DashboardLanding() {
       <PageBreadcrumb pageTitle="Dashboard" />
 
       <section className="space-y-6">
-        <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-white text-center text-base font-medium text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300">
-          Dashboard Content Here
+        <div className="w-full">
+          <div className="w-full bg-transparent">
+            <iframe
+              id="pbiframe"
+              title="test16_11"
+              src="https://app.powerbi.com/view?r=eyJrIjoiMmQ1M2JiNjQtOGI5Yy00MTMzLTllOTQtYjlmM2I1MmE5NGJjIiwidCI6IjczMWY3M2YzLWM1OTMtNDk0Yi04NDYwLWUwNjlkZDFiYTllOSJ9"
+              className="w-full h-[calc(100vh-7rem)] border-0"
+              style={{ border: 0 }}
+              frameBorder={0}
+              allowFullScreen
+            />
+          </div>
         </div>
       </section>
     </>
   );
 }
-

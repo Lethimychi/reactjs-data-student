@@ -42,10 +42,9 @@ export default function SubjectPerformanceRadar({
       position: "bottom",
       fontSize: "12px",
       fontFamily: "Outfit, sans-serif",
+      // use typed 'size' for markers to satisfy ApexOptions types
       markers: {
-        width: 10,
-        height: 10,
-        radius: 12,
+        size: 10,
       },
     },
     stroke: {
@@ -73,7 +72,7 @@ export default function SubjectPerformanceRadar({
 
   return (
     <div
-      className={`rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] ${className}`}
+      className={`rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 h-130 dark:bg-white/[0.03] ${className}`}
     >
       <header>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90">
