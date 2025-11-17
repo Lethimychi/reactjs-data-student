@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { ArrowDownIcon, ArrowUpIcon } from "../../../icons";
+import { ArrowDownIcon, ArrowUpIcon } from "../icons";
 
 type TrendDirection = "up" | "down";
 

@@ -18,6 +18,7 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import EcommerceAnalytics from "./pages/ecommerce/EcommerceAnalytics";
 import DashboardLanding from "./pages/Dashboard/DashboardLanding";
+import RequireRole from "./components/common/RequireRole";
 import StudentPage from "./pages/Students/page";
 import ChartSectionPage from "./pages/Students/sectionPage";
 
@@ -30,7 +31,14 @@ export default function App() {
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
             <Route index path="/" element={<DashboardLanding />} />
-            <Route path="/dashboard" element={<DashboardLanding />} />
+            <Route
+              path="/dashboard"
+              element={
+                <RequireRole allowed={["QuanTri"]}>
+                  <DashboardLanding />
+                </RequireRole>
+              }
+            />
             <Route path="/dashboard/ecommerce" element={<Home />} />
             <Route path="/students" element={<StudentPage />} />
             <Route path="/sections" element={<ChartSectionPage />} />

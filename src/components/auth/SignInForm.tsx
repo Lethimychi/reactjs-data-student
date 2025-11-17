@@ -57,7 +57,24 @@ export default function SignInForm() {
         localStorage.removeItem("remember_username");
       }
 
-      navigate("/dashboard");
+      // Determine role and navigate to appropriate default
+      // prefer server-provided user_info, fallback to localStorage
+      const userInfo =
+        res.user_info ||
+        (() => {
+          try {
+            return JSON.parse(String(localStorage.getItem("user_info")));
+          } catch {
+            return null;
+          }
+        })();
+
+      const role = userInfo?.loai_nguoi_dung || userInfo?.role;
+
+      if (role === "QuanTri") navigate("/dashboard");
+      else if (role === "GiangVien") navigate("/dashboard/ecommerce");
+      else if (role === "SinhVien") navigate("/students");
+      else navigate("/signin");
     } catch (err) {
       console.error("❌ Login error:", err);
       setErrorMessage("Sai tên đăng nhập hoặc mật khẩu");

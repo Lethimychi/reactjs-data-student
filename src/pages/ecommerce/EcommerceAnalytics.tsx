@@ -1,12 +1,12 @@
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import AnalyticsStatCard from "../../components/ecommerce/analytics/AnalyticsStatCard";
-import CurrentVisitsDonut from "../../components/ecommerce/analytics/CurrentVisitsDonut";
-import WebsiteVisitsColumnChart from "../../components/ecommerce/analytics/WebsiteVisitsColumnChart";
-import ConversionRatesList from "../../components/ecommerce/analytics/ConversionRatesList";
-import SubjectPerformanceRadar from "../../components/ecommerce/analytics/SubjectPerformanceRadar";
-import LatestNewsCard from "../../components/ecommerce/analytics/LatestNewsCard";
-import OrderTimelineCard from "../../components/ecommerce/analytics/OrderTimelineCard";
+import AnalyticsStatCard from "../../analytics/AnalyticsStatCard";
+import CurrentVisitsDonut from "../../analytics/CurrentVisitsDonut";
+import WebsiteVisitsColumnChart from "../../analytics/WebsiteVisitsColumnChart";
+import ConversionRatesList from "../../analytics/ConversionRatesList";
+import SubjectPerformanceRadar from "../../analytics/SubjectPerformanceRadar";
+import LatestNewsCard from "../../analytics/LatestNewsCard";
+import OrderTimelineCard from "../../analytics/OrderTimelineCard";
 
 // charts used elsewhere kept in repo but not shown in this layout
 
