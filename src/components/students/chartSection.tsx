@@ -17,11 +17,34 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 // import React from "react";
 
-/* Centralized mock data import (keeps components free of exported constants) */
-import { studentsData as studentsDataRaw } from "../../data/studentsMock";
+import getStudentInfo from "../../utils/student_api";
+import { useEffect, useState } from "react";
 
-// The centralized mock file is plain JS; cast to the local `Student` type used here.
-const studentsData: Student[] = studentsDataRaw as unknown as Student[];
+// Local state will hold the students fetched from API (direct call)
+const useStudentsFromApi = () => {
+  const [students, setStudents] = useState<Student[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const data = await getStudentInfo();
+        if (!mounted) return;
+        if (!data) return setStudents([]);
+        setStudents(
+          Array.isArray(data) ? (data as Student[]) : [data as Student]
+        );
+      } catch (err) {
+        console.error("Error loading students for charts:", err);
+        if (mounted) setStudents([]);
+      }
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  return students;
+};
 
 /* -------------------------------------------------
    2. Types (you can move them to a separate file)
@@ -64,20 +87,25 @@ type Student = {
    ------------------------------------------------- */
 const ChartsSection: React.FC = () => {
   /* ---------- Task 8: GPA ↔ Điểm rèn luyện ---------- */
+  const studentsData: Student[] = useStudentsFromApi();
   const correlationData = studentsData.flatMap((student: Student) =>
-    student.gpaData.map((g: SemesterGPA) => {
+    (student.gpaData ?? []).map((g: SemesterGPA) => {
+      const year = g.year ?? "";
       const yearShort =
-        g.year.split("-")[0].slice(-2) +
-        "-" +
-        (Number(g.year.split("-")[1]) - 2000);
+        year && year.includes("-")
+          ? year.split("-")[0].slice(-2) +
+            "-" +
+            (Number(year.split("-")[1]) - 2000)
+          : g.semester;
       const semKey = `${g.semester} ${yearShort}`;
       const train =
-        student.trainingScoreData.find((t) => t.semester === semKey)?.score ??
-        0;
+        (student.trainingScoreData ?? []).find(
+          (t: TrainingScore) => t.semester === semKey
+        )?.score ?? 0;
       return {
-        studentId: student.info.id,
+        studentId: student.info?.id ?? String(student.id),
         semester: semKey,
-        gpa: g.gpa,
+        gpa: g.gpa ?? 0,
         trainingScore: train,
       };
     })
@@ -92,12 +120,12 @@ const ChartsSection: React.FC = () => {
   };
 
   const counts = { Giỏi: 0, Khá: 0, "Trung bình": 0, Yếu: 0 };
-
   studentsData.forEach((s: Student) => {
-    Object.values(s.detailedScores).forEach((courses) => {
-      courses.forEach((c) => {
-        if (c.status === "Đậu") {
-          counts[gradeLabel(c.score)]++;
+    const details: Record<number, Course[]> = s.detailedScores ?? {};
+    Object.values(details).forEach((courses: Course[]) => {
+      (courses || []).forEach((c) => {
+        if ((c?.status ?? "") === "Đậu") {
+          counts[gradeLabel(c.score ?? 0)]++;
         }
       });
     });

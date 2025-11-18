@@ -30,7 +30,15 @@ export default function App() {
         <Routes>
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
-            <Route index path="/" element={<DashboardLanding />} />
+            <Route
+              index
+              path="/"
+              element={
+                <RequireRole allowed={["QuanTri", "GiangVien", "SinhVien"]}>
+                  <DashboardLanding />
+                </RequireRole>
+              }
+            />
             <Route
               path="/dashboard"
               element={
@@ -39,10 +47,24 @@ export default function App() {
                 </RequireRole>
               }
             />
-            <Route path="/dashboard/ecommerce" element={<Home />} />
+            <Route
+              path="/dashboard/ecommerce"
+              element={
+                <RequireRole allowed={["QuanTri", "GiangVien", "SinhVien"]}>
+                  <Home />
+                </RequireRole>
+              }
+            />
             <Route path="/students" element={<StudentPage />} />
             <Route path="/sections" element={<ChartSectionPage />} />
-            <Route path="/ecommerce" element={<Home />} />
+            <Route
+              path="/ecommerce"
+              element={
+                <RequireRole allowed={["QuanTri", "GiangVien", "SinhVien"]}>
+                  <Home />
+                </RequireRole>
+              }
+            />
             <Route
               path="/ecommerce-analytics"
               element={<EcommerceAnalytics />}

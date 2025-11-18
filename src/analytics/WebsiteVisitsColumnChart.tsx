@@ -22,7 +22,7 @@ export default function WebsiteVisitsColumnChart({
   const options: ApexOptions = {
     chart: {
       type: "bar",
-      fontFamily: "Outfit, sans-serif",
+      fontFamily: "Inter, sans-serif",
       toolbar: { show: false },
     },
     plotOptions: {
@@ -36,7 +36,7 @@ export default function WebsiteVisitsColumnChart({
       position: "top",
       horizontalAlign: "left",
       fontSize: "13px",
-      fontFamily: "Outfit, sans-serif",
+      fontFamily: "Inter, sans-serif",
       markers: {
         width: 10,
         height: 10,

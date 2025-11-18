@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
@@ -84,15 +83,6 @@ export default function SignInForm() {
   return (
     <div className="flex flex-col flex-1">
       {/* Back */}
-      <div className="w-full max-w-md pt-10 mx-auto">
-        <Link
-          to="/"
-          className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
-        >
-          <ChevronLeftIcon className="size-5" />
-          Quay lại trang tổng quan
-        </Link>
-      </div>
 
       {/* Form Container */}
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -131,9 +121,7 @@ export default function SignInForm() {
               <span
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
-              >
-                {showPassword ? <EyeIcon /> : <EyeCloseIcon />}
-              </span>
+              ></span>
             </div>
           </div>
 

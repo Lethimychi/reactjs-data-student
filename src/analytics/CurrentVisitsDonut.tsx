@@ -22,7 +22,7 @@ export default function CurrentVisitsDonut({
     legend: {
       position: "bottom",
       fontSize: "14px",
-      fontFamily: "Outfit, sans-serif",
+      fontFamily: "Inter, sans-serif",
       labels: {
         colors: "#6B7280",
       },
@@ -47,7 +47,7 @@ export default function CurrentVisitsDonut({
             name: {
               show: true,
               fontSize: "14px",
-              fontFamily: "Outfit, sans-serif",
+              fontFamily: "Inter, sans-serif",
             },
             value: {
               show: true,

@@ -41,7 +41,7 @@ export default function SubjectPerformanceRadar({
     legend: {
       position: "bottom",
       fontSize: "12px",
-      fontFamily: "Outfit, sans-serif",
+      fontFamily: "Inter, sans-serif",
       // use typed 'size' for markers to satisfy ApexOptions types
       markers: {
         size: 10,

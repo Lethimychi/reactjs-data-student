@@ -1,10 +1,10 @@
 // ============================================
-// 1. Định nghĩa kiểu trả về từ backend
-
+// 1. Kiểu trả về từ backend
 // ============================================
 export interface AuthResponse {
   access_token?: string;
   refresh_token?: string;
+  token_type?: string;
   user_info?: unknown;
   [key: string]: unknown;
 }
@@ -16,7 +16,7 @@ if (!API_URL) {
 }
 
 // ============================================
-// 2. Gọi API LOGIN → Lưu token vào localStorage
+// 2. LOGIN → Lưu token vào localStorage
 // ============================================
 export const loginApi = async (
   username: string,
@@ -44,22 +44,28 @@ export const loginApi = async (
 
   const data = (await res.json()) as AuthResponse;
 
-  if (data.access_token)
-    localStorage.setItem("access_token", String(data.access_token));
-  if (data.refresh_token)
-    localStorage.setItem("refresh_token", String(data.refresh_token));
-  if (data.user_info)
+  // Lưu token — DÙNG CHUNG 1 KEY "access_token"
+  if (data.access_token) {
+    localStorage.setItem("access_token", data.access_token);
+  }
+  if (data.refresh_token) {
+    localStorage.setItem("refresh_token", data.refresh_token);
+  }
+
+  // Lưu token_type (mặc định là "Bearer" nếu backend không trả)
+  const tokenType = data.token_type || "Bearer";
+  localStorage.setItem("token_type", tokenType);
+
+  // Lưu user_info
+  if (data.user_info) {
     localStorage.setItem("user_info", JSON.stringify(data.user_info));
-  // store token type if provided by backend (e.g. "bearer")
-  const tt = data["token_type"];
-  if (typeof tt === "string") localStorage.setItem("token_type", tt);
-  if (data.user_info)
-    localStorage.setItem("user_info", JSON.stringify(data.user_info));
+  }
+
   return data;
 };
 
 // ============================================
-// 3. Hàm API chung → Tự động gắn token
+// 3. HÀM API CHUNG — Tự động gắn token
 // ============================================
 export const apiFetch = async (
   endpoint: string,
@@ -70,32 +76,32 @@ export const apiFetch = async (
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type") || "Bearer";
 
-  // Merge headers safely using the Headers API (supports HeadersInit formats)
-  const merged = new Headers(options.headers as HeadersInit | undefined);
+  // Gộp headers
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("Content-Type"))
+    headers.set("Content-Type", "application/json");
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
 
-  // Ensure JSON defaults
-  if (!merged.has("Content-Type"))
-    merged.set("Content-Type", "application/json");
-  if (!merged.has("Accept")) merged.set("Accept", "application/json");
-
-  if (token) merged.set("Authorization", `${tokenType} ${token}`);
+  // Gắn Authorization nếu có token
+  if (token) headers.set("Authorization", `${tokenType} ${token}`);
 
   const res = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers: merged,
+    headers,
   });
 
+  // Token hết hạn → tự động refresh
   if (res.status === 401) {
     console.warn("⚠ Token expired → Trying to refresh...");
     const newToken = await refreshTokenApi();
 
     if (!newToken) {
-      console.warn("❌ Refresh token failed, logging out.");
+      console.warn("❌ Refresh token failed → logout");
       await logoutApi();
       throw new Error("Session expired. Please login again.");
     }
 
-    // Retry request with new token
+    // Thử lại request sau khi refresh thành công
     return apiFetch(endpoint, options);
   }
 
@@ -108,7 +114,7 @@ export const apiFetch = async (
 };
 
 // ============================================
-// 4. Refresh Token API (tự động gọi khi 401)
+// 4. REFRESH TOKEN API
 // ============================================
 export const refreshTokenApi = async (): Promise<string | null> => {
   const refresh_token = localStorage.getItem("refresh_token");
@@ -122,17 +128,20 @@ export const refreshTokenApi = async (): Promise<string | null> => {
 
   if (!res.ok) return null;
 
-  const data = (await res.json()) as Record<string, unknown>;
-  if (typeof data["access_token"] === "string")
-    localStorage.setItem("access_token", data["access_token"] as string);
-  const tt = data["token_type"];
-  if (typeof tt === "string") localStorage.setItem("token_type", tt);
+  const data = (await res.json()) as AuthResponse;
 
-  return typeof data["access_token"] === "string" ? data["access_token"] : null;
+  if (data.access_token) {
+    localStorage.setItem("access_token", data.access_token);
+  }
+  if (data.token_type) {
+    localStorage.setItem("token_type", data.token_type);
+  }
+
+  return data.access_token || null;
 };
 
 // ============================================
-// 4. Refresh Token API (tự động gọi khi 401)
+// 5. LOGOUT API
 // ============================================
 export const logoutApi = async () => {
   if (!API_URL) throw new Error("VITE_API is not defined!");
@@ -140,19 +149,11 @@ export const logoutApi = async () => {
   const access_token = localStorage.getItem("access_token");
   const refresh_token = localStorage.getItem("refresh_token");
 
-  // Nếu không có token → đăng xuất local luôn
+  // Không có token thì logout local luôn
   if (!access_token || !refresh_token) {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user_info");
-
-    return {
-      status: 200,
-      message: "Đã đăng xuất (local)",
-    };
+    localStorage.clear();
+    return { status: 200, message: "Đã đăng xuất (local)" };
   }
-
-  let json = null;
 
   try {
     const res = await fetch(`${API_URL}/auth/logout`, {
@@ -164,11 +165,11 @@ export const logoutApi = async () => {
       body: JSON.stringify({
         access_token,
         refresh_token,
-        token_type: "bearer",
       }),
     });
 
     const text = await res.text();
+    let json: Record<string, unknown>;
 
     try {
       json = JSON.parse(text);
@@ -176,10 +177,7 @@ export const logoutApi = async () => {
       json = { message: text };
     }
 
-    // Xóa token ở FE dù backend trả gì
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user_info");
+    localStorage.clear();
 
     return {
       status: res.status,
@@ -188,10 +186,7 @@ export const logoutApi = async () => {
   } catch (err) {
     console.error("Logout request failed:", err);
 
-    // fallback — xóa local
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user_info");
+    localStorage.clear();
 
     return {
       status: 500,
