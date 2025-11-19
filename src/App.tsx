@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { useUser } from "./hooks/useUser";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -23,6 +29,25 @@ import StudentPage from "./pages/Students/page";
 import ChartSectionPage from "./pages/Students/sectionPage";
 
 export default function App() {
+  // Redirect component that sends users to their default landing page based on role
+  const RedirectByRole: React.FC = () => {
+    const user = useUser();
+    // If not logged in, send to signin
+    if (!user) return <Navigate to="/signin" replace />;
+
+    const role = user?.loai_nguoi_dung ?? user?.role ?? "";
+    switch (role) {
+      case "QuanTri":
+        return <Navigate to="/dashboard" replace />;
+      case "GiangVien":
+        return <Navigate to="/dashboard/ecommerce" replace />;
+      case "SinhVien":
+        return <Navigate to="/students" replace />;
+      default:
+        return <Navigate to="/signin" replace />;
+    }
+  };
+
   return (
     <>
       <Router>
@@ -30,15 +55,7 @@ export default function App() {
         <Routes>
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
-            <Route
-              index
-              path="/"
-              element={
-                <RequireRole allowed={["QuanTri", "GiangVien", "SinhVien"]}>
-                  <DashboardLanding />
-                </RequireRole>
-              }
-            />
+            <Route index path="/" element={<RedirectByRole />} />
             <Route
               path="/dashboard"
               element={

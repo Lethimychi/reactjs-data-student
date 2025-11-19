@@ -8,21 +8,29 @@ interface UserInfo {
 
 // MENU CHO ADMIN
 const adminNav: NavItem[] = [
-  { name: "Dashboard", icon: <GridIcon />, path: "/dashboard" },
-  { name: "User Profile", icon: <UserCircleIcon />, path: "/profile" },
+  { name: "Thống kê", icon: <GridIcon />, path: "/dashboard" },
+  { name: "Hồ sơ cá nhân", icon: <UserCircleIcon />, path: "/profile" },
 ];
 
 // MENU CHO GIẢNG VIÊN
 const teacherNav: NavItem[] = [
-  { name: "Ecommerce", icon: <GridIcon />, path: "/dashboard/ecommerce" },
-  { name: "Analytics", icon: <GridIcon />, path: "/ecommerce-analytics" },
-  { name: "User Profile", icon: <UserCircleIcon />, path: "/profile" },
+  {
+    name: "Thốg kê lớp cố vấn",
+    icon: <GridIcon />,
+    path: "/dashboard/ecommerce",
+  },
+  {
+    name: "Thống kê sinh viên",
+    icon: <GridIcon />,
+    path: "/ecommerce-analytics",
+  },
+  { name: "Hồ sơ cá nhân", icon: <UserCircleIcon />, path: "/profile" },
 ];
 
 // MENU CHO SINH VIÊN
 const studentNav: NavItem[] = [
-  { name: "Students", icon: <UserCircleIcon />, path: "/students" },
-  { name: "User Profile", icon: <UserCircleIcon />, path: "/profile" },
+  { name: "Sinh viên", icon: <UserCircleIcon />, path: "/students" },
+  { name: "Hồ sơ cá nhân", icon: <UserCircleIcon />, path: "/profile" },
 ];
 
 export const useSidebarItems = () => {

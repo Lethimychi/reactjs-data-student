@@ -1090,6 +1090,21 @@ const StudentDashboard: React.FC = () => {
           return;
         }
 
+        // build normalized course list for selected semester to help filter
+        // Prefer the `apiCoursesPerSemester` (the canonical list from the API)
+        // otherwise fall back to detailed API entries or currentStudent data.
+        const rawSemesterCourses: string[] =
+          apiCoursesPerSemester[selectedSemester] ??
+          (apiCoursesDetailed[selectedSemester]
+            ? apiCoursesDetailed[selectedSemester].map((s) => s.course || "")
+            : currentStudent?.detailedScores?.[selectedSemester]?.map(
+                (s) => s.course || ""
+              ) ?? []);
+
+        const semesterCourses = rawSemesterCourses.map((c) =>
+          normalizeForMatch(String(c || ""))
+        );
+
         const normalized = (data as ClassAverageRecord[])
           .map((rec) => {
             // If API provides semester/year fields, prefer only records matching the selected semester
@@ -1111,6 +1126,24 @@ const StudentDashboard: React.FC = () => {
               const semYear = String(sem.year).trim();
               const semHk = String(sem.name.split(" ")[0] ?? "").trim();
               if (rYear !== semYear || rHk !== semHk) return null; // skip non-matching semester rows
+            }
+
+            // If the API record doesn't include semester fields, only include it
+            // when its course name roughly matches a course from the selected semester.
+            if (!recYear || !recHk) {
+              const tmpCourse =
+                (rec["Ten Mon Hoc"] as string) ||
+                (rec["TenMonHoc"] as string) ||
+                (rec["Ten"] as string) ||
+                (rec["name"] as string) ||
+                "";
+              const normCourse = normalizeForMatch(String(tmpCourse || ""));
+              // Require exact normalized equality with the semester's course list
+              const hasMatch = semesterCourses.some((c) => {
+                if (!c || !normCourse) return false;
+                return c === normCourse;
+              });
+              if (!hasMatch) return null;
             }
 
             // Course name candidates
@@ -1175,7 +1208,13 @@ const StudentDashboard: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [apiSemesters, selectedSemester]);
+  }, [
+    apiSemesters,
+    selectedSemester,
+    apiCoursesDetailed,
+    currentStudent,
+    apiCoursesPerSemester,
+  ]);
 
   // Merge API comparison with student's own scores for the selected semester
   const comparisonWithStudent = comparisonApiData.map((item) => {
@@ -1187,12 +1226,7 @@ const StudentDashboard: React.FC = () => {
     ).find((s) => {
       try {
         const a = normalizeForMatch(s.course || "");
-        return (
-          a.includes(norm) ||
-          norm.includes(a) ||
-          a.startsWith(norm) ||
-          norm.startsWith(a)
-        );
+        return a === norm; // exact normalized equality
       } catch {
         return false;
       }
@@ -1950,7 +1984,7 @@ const StudentDashboard: React.FC = () => {
                     dataKey="average"
                     stroke="#ef4444"
                     strokeWidth={3}
-                    name="Điểm TB lớp"
+                    name="Điểm trung bình môn học"
                     dot={{ fill: "#ef4444", r: 5, cursor: "pointer" }}
                     activeDot={{ r: 7, cursor: "pointer" }}
                   />

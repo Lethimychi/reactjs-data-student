@@ -15,10 +15,10 @@ export type NavItem = {
 const othersItems: NavItem[] = [
   {
     icon: <PlugInIcon />,
-    name: "Authentication",
+    name: "Phân quyền",
     subItems: [
-      { name: "Sign In", path: "/signin" },
-      { name: "Sign Up", path: "/signup" },
+      { name: "Đăng nhập", path: "/signin" },
+      { name: "Đăng ký", path: "/signup" },
     ],
   },
 ];
@@ -26,6 +26,17 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+
+  // Simple translation map for sidebar labels (English -> Vietnamese)
+  const TRANSLATIONS: Record<string, string> = {
+    Menu: "Danh mục",
+    Others: "Khác",
+    Students: "Sinh viên",
+    "User Profile": "Hồ sơ cá nhân",
+    "Phân quyền": "Phân quyền",
+  };
+
+  const t = (s?: string) => (s && TRANSLATIONS[s] ? TRANSLATIONS[s] : s || "");
 
   // 🚀 MENU CHẠY THEO ROLE
   const navItems = useSidebarItems();
@@ -194,12 +205,16 @@ const AppSidebar: React.FC = () => {
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              <h2 className="text-xs uppercase mb-4 text-gray-400">Menu</h2>
+              <h2 className="text-xs uppercase mb-4 text-gray-400">
+                {t("Danh mục")}
+              </h2>
               {renderMenuItems(navItems, "main")}
             </div>
 
             <div>
-              <h2 className="text-xs uppercase mb-4 text-gray-400">Others</h2>
+              <h2 className="text-xs uppercase mb-4 text-gray-400">
+                {t("Khác")}
+              </h2>
               {renderMenuItems(othersItems, "others")}
             </div>
           </div>
