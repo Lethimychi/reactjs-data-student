@@ -1,16 +1,12 @@
 // src/utils/student_api.ts
 
+import { API_BASE_URL, getAuth } from "./share";
+
 // Lấy base URL từ .env
-const API_BASE_URL = import.meta.env.VITE_API;
+
 console.log("🔗 BASE API URL:", API_BASE_URL);
 
-// Token helper: read both token and token_type if present
-function getAuth() {
-  const token = localStorage.getItem("access_token");
-  const tokenType = localStorage.getItem("token_type");
-  // default to Bearer if server didn't store token_type
-  return { token, tokenType: tokenType ?? "Bearer" };
-}
+
 
 // Types for API responses (records use Vietnamese keys)
 export type CourseApiRecord = {
