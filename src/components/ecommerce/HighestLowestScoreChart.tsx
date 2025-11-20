@@ -24,7 +24,7 @@ export default function HighestLowestScoreChart({
   return (
     <div className="rounded-2xl bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-200">
       <h4 className="font-semibold text-slate-700 text-lg mb-3">
-        Highest vs Lowest Score
+        Môn học có điểm cao nhất và thấp nhất
       </h4>
       <div className={className ?? "w-full h-64"}>
         <ResponsiveContainer>

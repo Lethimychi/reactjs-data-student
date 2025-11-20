@@ -1,15 +1,19 @@
-import { useState } from "react";
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  BoxIconLine,
-  GroupIcon,
-} from "../../icons";
+import { useEffect, useState } from "react";
+import { ArrowDownIcon, BoxIconLine, GroupIcon } from "../../icons";
 import Badge from "../ui/badge/Badge";
+import { fetchStudentStats } from "../../utils/ClassLecturerApi";
 
-import MonthlySalesChart from "./MonthlySalesChart";
+interface Props {
+  selectedSemesterId?: number | null;
+  selectedClassId?: number | null;
+  selectedClassName?: string | null;
+}
 
-export default function EcommerceMetrics() {
+export default function EcommerceMetrics({
+  selectedSemesterId,
+  selectedClassId,
+  selectedClassName,
+}: Props) {
   const classList = [
     {
       id: 1,
@@ -37,14 +41,32 @@ export default function EcommerceMetrics() {
 
   const shorten = (s: string, max = 12) =>
     s && s.length > max ? s.slice(0, max) + "…" : s;
-  const [selectedClassId, setSelectedClassId] = useState<number>(
-    classList[0]?.id ?? 0
-  );
+  const [studentCount, setStudentCount] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
 
-  // prevent unused variable lint during iterative development
   void shorten;
-  void selectedClassId;
-  void setSelectedClassId;
+  void classList;
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const stats = await fetchStudentStats(selectedClassName ?? undefined);
+        if (!cancelled && stats) {
+          setStudentCount(stats["Tong_SV"]);
+        }
+      } catch (err) {
+        console.error("Failed to load student stats", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSemesterId, selectedClassId, selectedClassName]);
 
   return (
     <div className="space-y-6">
@@ -58,19 +80,16 @@ export default function EcommerceMetrics() {
             <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
           </div>
 
-          <div className="flex items-end justify-between mt-5">
+          <div className="flex items-end  mt-2 w-45 h-21">
             <div>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Customers
+                Sinh viên
               </span>
               <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                3,782
+                {loading ? "..." : studentCount.toLocaleString()}
               </h4>
             </div>
-            <Badge color="success">
-              <ArrowUpIcon />
-              11.01%
-            </Badge>
+            <Badge color="success">30 Nam - 30 Nữ</Badge>
           </div>
         </div>
         {/* <!-- Metric Item End --> */}
@@ -80,13 +99,13 @@ export default function EcommerceMetrics() {
           <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
             <BoxIconLine className="text-gray-800 size-6 dark:text-white/90" />
           </div>
-          <div className="flex items-end justify-between mt-5">
+          <div className="flex items-end justify-between mt-5 w-42 ">
             <div>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Orders
+                Tỷ lệ qua môn
               </span>
               <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                5,359
+                80.8%
               </h4>
             </div>
 
@@ -100,26 +119,26 @@ export default function EcommerceMetrics() {
           <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
             <BoxIconLine className="text-gray-800 size-6 dark:text-white/90" />
           </div>
-          <div className="flex items-end justify-between mt-5">
+          <div className="flex items-end justify-between mt-5 w-47">
             <div>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Orders
+                Sinh viên nợ môn
               </span>
-              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                5,359
+              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90 w-10">
+                10
               </h4>
             </div>
-
-            <Badge color="error">
-              <ArrowDownIcon />
-              9.05%
-            </Badge>
+            <div style={{ position: "relative", left: "-20px" }}>
+              <Badge color="error">
+                <ArrowDownIcon />
+                9.05%
+              </Badge>
+            </div>
           </div>
         </div>
         {/* <!-- Metric Item End --> */}
       </div>
 
-      <MonthlySalesChart />
       {/* Academic Advisor Dashboard */}
     </div>
   );

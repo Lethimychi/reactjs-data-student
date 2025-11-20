@@ -55,15 +55,14 @@ export async function getHighestScoreSubject(): Promise<SubjectScore[] | null> {
   }
 }
 
-export interface SubjectScore {
-  "Ten Nam Hoc": string;
-  "Ten Hoc Ky": string;
-  "Ten Mon Hoc": string;
-  DTB: number;
-}
-
 export default async function getLowestScoreSubjectsInSemester(): Promise<
-  SubjectScore[] | null
+  | {
+      "Ten Nam Hoc": string;
+      "Ten Hoc Ky": string;
+      "Ten Mon Hoc": string;
+      DTB: number;
+    }[]
+  | null
 > {
   try {
     const auth = getAuth();

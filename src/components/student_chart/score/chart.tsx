@@ -1,5 +1,5 @@
+import React, { useEffect, useState } from "react";
 import { Award } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -8,110 +8,183 @@ import {
   Legend,
   ResponsiveContainer,
   Tooltip,
+  TooltipProps,
   XAxis,
   YAxis,
 } from "recharts";
 import { loadHighestLowestData } from "../../../utils/score/handler_highes_lowest";
 
-export function StudentScoreChartHighestLowest() {
-  const [allData, setAllData] = useState<any[]>([]);
-  const [semester, setSemester] = useState("");
+// -------------------------
+// TYPE CHUẨN – KHÔNG ANY
+// -------------------------
+export interface HighestLowest {
+  semester: string;
+  highestScore: number;
+  highestSubject: string;
+  highestCredits: number;
+  lowestScore: number;
+  lowestSubject: string;
+  lowestCredits: number;
+}
 
+interface CustomTooltipPayload {
+  name: string;
+  value: number;
+  dataKey: "highestScore" | "lowestScore";
+  payload: HighestLowest;
+}
+
+// -------------------------
+// COMPONENT CHÍNH
+// -------------------------
+export function StudentScoreChartHighestLowest() {
+  const [allData, setAllData] = useState<HighestLowest[]>([]);
+  // state value only — setter intentionally omitted while the semester filter UI is disabled
+  const [selectedSemester] = useState<string>("");
+
+  // -------------------------
+  // LOAD DATA – KHÔNG ANY
+  // -------------------------
   useEffect(() => {
-    loadHighestLowestData().then(setAllData);
+    loadHighestLowestData().then((data) => {
+      if (!Array.isArray(data)) {
+        setAllData([]);
+        return;
+      }
+
+      const mapped: HighestLowest[] = data.map((row) => {
+        const rec = row as Record<string, unknown>;
+
+        return {
+          semester: String(rec["semester"] ?? ""),
+          highestScore: Number(rec["highestScore"] ?? 0),
+          highestSubject: String(rec["highestSubject"] ?? ""),
+          highestCredits: Number(rec["highestCredits"] ?? 0),
+          lowestScore: Number(rec["lowestScore"] ?? 0),
+          lowestSubject: String(rec["lowestSubject"] ?? ""),
+          lowestCredits: Number(rec["lowestCredits"] ?? 0),
+        };
+      });
+
+      setAllData(mapped);
+    });
   }, []);
 
   const displayData =
-    semester === "" ? allData : allData.filter((x) => x.semester === semester);
+    selectedSemester === ""
+      ? allData
+      : allData.filter((item) => item.semester === selectedSemester);
 
+  // Determine Y-axis upper bound dynamically from the data.
+  // If there's no data or the max is non-positive, fall back to 10.
+  const maxScoreFromData =
+    displayData && displayData.length
+      ? Math.max(
+          ...displayData.map((d) => Math.max(d.highestScore, d.lowestScore))
+        )
+      : 0;
+  const yMax = maxScoreFromData > 0 ? Math.ceil(maxScoreFromData) : 10;
+
+  // -------------------------
+  // CUSTOM TOOLTIP – KHÔNG ANY
+  // -------------------------
+  const CustomTooltip: React.FC<TooltipProps<number, string>> = (props) => {
+    const { active, payload } = props as TooltipProps<number, string> & {
+      payload?: unknown[];
+    };
+
+    if (!active || !payload || payload.length === 0) return null;
+
+    const items = payload as unknown as CustomTooltipPayload[];
+
+    return (
+      <div className="bg-white p-4 rounded-xl shadow-lg border-none">
+        <div className="font-semibold text-slate-800 mb-2 text-sm">{}</div>
+
+        {items.map((item) => (
+          <div key={item.dataKey} className="text-sm text-slate-700 mb-1">
+            <strong className="font-semibold">{item.name}:</strong> {item.value}{" "}
+            điểm —{" "}
+            {item.dataKey === "highestScore"
+              ? item.payload.highestSubject
+              : item.payload.lowestSubject}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // -------------------------
+  // RENDER CHART
+  // -------------------------
   return (
     <div className="w-full">
-      {/* Semester filter */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200 w-full">
-        <div className="flex items-center gap-2 mb-6">
-          <Award className="w-6 h-6 text-indigo-600" />
-          <h2 className="text-xl font-bold text-gray-800">
+      <div className=" bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-indigo-50 rounded-xl">
+            <Award className="w-6 h-6 text-indigo-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800">
             Hiệu suất theo học kỳ (Cao nhất vs Thấp nhất)
           </h2>
         </div>
-        <div className="mb-4">
-          <select
-            value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">Tất cả học kỳ</option>
-            {allData.map((item) => (
-              <option key={item.semester} value={item.semester}>
-                {item.semester}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full h-96">
+
+        <div className="w-full h-100">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={displayData}
-              margin={{ top: 10, right: 24, left: 0, bottom: 20 }}
-              barCategoryGap="40%"
-              barGap={12}
+              margin={{ top: 10, right: 10, left: -10, bottom: 10 }}
+              barCategoryGap="35%"
+              barGap={10}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="semester" stroke="#64748b" />
-              <YAxis domain={[0, 10]} stroke="#64748b" />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (!active || !payload || !payload.length) return null;
-                  return (
-                    <div className="bg-white p-3 rounded shadow-md border border-gray-200">
-                      <div className="font-semibold mb-2">{label}</div>
-                      {payload.map((p) => (
-                        <div
-                          key={p.dataKey}
-                          className="text-sm text-gray-700 mb-1"
-                        >
-                          <span className="font-semibold">{p.name}:</span>{" "}
-                          {p.value} điểm —{" "}
-                          <span className="font-medium">
-                            {
-                              p.payload[
-                                p.dataKey === "highestScore"
-                                  ? "highestSubject"
-                                  : "lowestSubject"
-                              ]
-                            }
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                }}
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#e2e8f0"
+                opacity={0.6}
               />
+              <XAxis
+                dataKey="semester"
+                stroke="#64748b"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+              />
+              <YAxis
+                domain={[0, yMax]}
+                stroke="#64748b"
+                tick={{ fontSize: 12 }}
+                tickLine={false}
+              />
+
+              <Tooltip content={<CustomTooltip />} />
+
               <Legend
-                verticalAlign="top"
-                align="right"
-                wrapperStyle={{ paddingBottom: "10px" }}
+                verticalAlign="bottom"
+                align="center"
+                wrapperStyle={{ paddingTop: "16px" }}
+                iconType="circle"
               />
 
               <Bar
                 dataKey="highestScore"
                 name="Cao nhất"
-                barSize={18}
-                fill="#10b981"
+                barSize={20}
+                fill="#22C55E"
+                radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`h-${idx}`} fill="#10b981" />
+                  <Cell key={`hi-${idx}`} fill="#22C55E" />
                 ))}
               </Bar>
 
               <Bar
                 dataKey="lowestScore"
                 name="Thấp nhất"
-                barSize={18}
-                fill="#ef4444"
+                barSize={20}
+                fill="#EF4444"
+                radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`l-${idx}`} fill="#ef4444" />
+                  <Cell key={`low-${idx}`} fill="#EF4444" />
                 ))}
               </Bar>
             </BarChart>

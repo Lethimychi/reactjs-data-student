@@ -8,15 +8,17 @@ interface CountryMapProps {
 }
 
 const CountryMap: React.FC<CountryMapProps> = ({ mapColor }) => {
+  const initialMarkerStyle: Record<string, unknown> = {
+    fill: "#465FFF",
+    r: 4,
+  };
+
   return (
     <VectorMap
       map={worldMill}
       backgroundColor="transparent"
       markerStyle={{
-        initial: {
-          fill: "#465FFF",
-          r: 4, // Custom radius for markers
-        } as any, // Type assertion to bypass strict CSS property checks
+        initial: initialMarkerStyle,
       }}
       markersSelectable={true}
       markers={[

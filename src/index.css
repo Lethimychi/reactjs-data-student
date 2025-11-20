@@ -1,11 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap")
-layer(base);
+/* base layer import for Tailwind */
+@layer base;
 
 @import "tailwindcss";
 
-@import "tw-animate-css";
 body {
-  font-family: sans-serif;
+  font-family: "Inter", Manrope, Outfit, sans-serif;
 }
 
 @custom-variant dark (&:is(.dark *));

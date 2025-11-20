@@ -6,8 +6,6 @@ import { API_BASE_URL, getAuth } from "./share";
 
 console.log("🔗 BASE API URL:", API_BASE_URL);
 
-
-
 // Types for API responses (records use Vietnamese keys)
 export type CourseApiRecord = {
   "Ten Nam Hoc"?: string;
@@ -481,6 +479,68 @@ export async function getStudentClassAverageComparison(
     return data;
   } catch (err) {
     console.error("❌ Lỗi khi gọi API so sánh điểm:", err);
+    throw err;
+  }
+}
+
+// -----------------------------------------
+// Lấy điểm rèn luyện (DRL) theo từng học kỳ
+// Endpoint example: /api/sinhvien/diem-ren-luyen-cua-sinh-vien-trong-tung-hoc-ky
+export type TrainingScoreApiRecord = {
+  "Ten Nam Hoc"?: string;
+  "Ten Hoc Ky"?: string;
+  DRL?: number | string;
+  [key: string]: unknown;
+};
+
+export async function getStudentTrainingScores(): Promise<
+  TrainingScoreApiRecord[] | null
+> {
+  try {
+    const auth = getAuth();
+    if (!auth.token) {
+      console.error("⛔ Không có token → Không thể gọi API DRL");
+      return null;
+    }
+
+    const url = `${API_BASE_URL}/api/sinhvien/diem-ren-luyen-cua-sinh-vien-trong-tung-hoc-ky`;
+    console.log("📡 Gửi request GET (training scores / DRL):", url);
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `${auth.tokenType} ${auth.token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "69420",
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("❌ Lỗi API DRL:", text);
+      throw new Error(
+        `API returned status ${res.status}: ${text.slice(0, 300)}`
+      );
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error("❌ API DRL trả về HTML/other:", text.slice(0, 500));
+      throw new Error(
+        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
+          0,
+          300
+        )}`
+      );
+    }
+
+    const data = (await res.json()) as TrainingScoreApiRecord[];
+    console.log("✅ API DRL trả về:", data);
+    return data;
+  } catch (err) {
+    console.error("❌ Lỗi khi gọi API DRL:", err);
     throw err;
   }
 }

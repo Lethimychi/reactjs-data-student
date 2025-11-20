@@ -15,8 +15,6 @@ import {
   Pie,
   Cell,
   ComposedChart,
-  ScatterChart,
-  Scatter,
 } from "recharts";
 import {
   User,
@@ -38,6 +36,7 @@ import getStudentInfo, {
   PassRateApiRecord,
   getStudentClassAverageComparison,
   ClassAverageRecord,
+  getStudentTrainingScores,
 } from "../../utils/student_api";
 import { StudentScoreChartHighestLowest } from "../student_chart/score/chart";
 import { RateGpaAndPoint } from "../student_chart/rate/chart";
@@ -76,16 +75,6 @@ type Student = {
   passRateData: PassRate[];
   detailedScores: Record<number, Course[]>;
   trainingScoreData: TrainingScore[];
-};
-
-type HighestLowest = {
-  semester: string;
-  highestScore: number;
-  highestSubject: string;
-  highestCredits: number;
-  lowestScore: number;
-  lowestSubject: string;
-  lowestCredits: number;
 };
 
 type PredictionPanelProps = {
@@ -231,6 +220,28 @@ const PredictionPanel: React.FC<PredictionPanelProps> = ({
 // NOTE: mock data file removed — derive semester/course lists from API-loaded student
 const studentsData: Student[] = [];
 
+/**
+ * Calculate dynamic Y-axis maximum value
+ * @param values - Array of numeric values to analyze
+ * @param minClamp - Minimum value to clamp the result to
+ * @param step - Step size for rounding (default: 1)
+ * @returns Dynamic maximum value for Y-axis
+ */
+const getDynamicAxisMax = (
+  values: number[],
+  minClamp: number,
+  step: number = 1
+): number => {
+  if (!values || values.length === 0) return minClamp;
+
+  const maxValue = Math.max(...values.filter((v) => Number.isFinite(v)));
+
+  if (maxValue < minClamp) return minClamp;
+
+  // Round up to nearest step
+  return Math.ceil(maxValue / step) * step;
+};
+
 const StudentDashboard: React.FC = () => {
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<string>("all");
@@ -303,8 +314,6 @@ const StudentDashboard: React.FC = () => {
   const userDisplayName =
     getUserNameFromLocal() ?? currentStudent?.info?.name ?? "Sinh viên";
 
-  // Helper: normalize API response into our `Student` shape with safe defaults
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   const normalizeStudent = (raw: unknown): Student => {
     const fallback: Student = {
       id: 0,
@@ -316,16 +325,17 @@ const StudentDashboard: React.FC = () => {
       trainingScoreData: [],
     };
 
-    // allow flexible mapping from unknown API shape
-    const r: any = raw as any;
+    const r = (raw ?? {}) as Record<string, unknown>;
 
-    // fuzzy key lookup: normalize keys (lowercase, remove non-alphanum)
     const normalizeKey = (s: string) =>
       s
         .toString()
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "");
-    const findValue = (obj: Record<string, any>, candidates: string[]) => {
+    const findValue = (
+      obj: Record<string, unknown> | undefined,
+      candidates: string[]
+    ) => {
       if (!obj || typeof obj !== "object") return undefined;
       const map: Record<string, string> = {};
       Object.keys(obj).forEach((k) => (map[normalizeKey(k)] = k));
@@ -336,23 +346,25 @@ const StudentDashboard: React.FC = () => {
       return undefined;
     };
 
-    const infoSource = r?.info ?? r?.student_info ?? r?.sinh_vien ?? r ?? {};
+    const infoSource =
+      (r["info"] as Record<string, unknown>) ??
+      (r["student_info"] as Record<string, unknown>) ??
+      (r["sinh_vien"] as Record<string, unknown>) ??
+      (r as Record<string, unknown>);
     const info = {
       id: String(
         findValue(infoSource, ["Ma Sinh Vien", "MaSinhVien", "mssv", "id"]) ??
-          infoSource.id ??
-          infoSource.mssv ??
+          (infoSource && (infoSource.id ?? infoSource.mssv)) ??
           fallback.info.id
       ),
       name: String(
         findValue(infoSource, ["Ten", "Ho Ten", "ten", "ho_ten", "fullname"]) ??
-          infoSource.name ??
+          (infoSource && (infoSource.name ?? "")) ??
           fallback.info.name
       ),
       class: String(
         findValue(infoSource, ["Ten Lop", "TenLop", "lop", "class"]) ??
-          infoSource.class ??
-          infoSource.lop ??
+          (infoSource && (infoSource.class ?? infoSource.lop)) ??
           fallback.info.class
       ),
       area: String(
@@ -362,61 +374,95 @@ const StudentDashboard: React.FC = () => {
           "khu_vuc",
           "area",
         ]) ??
-          infoSource.area ??
-          infoSource.khu_vuc ??
+          (infoSource && (infoSource.area ?? infoSource.khu_vuc)) ??
           fallback.info.area
       ),
     };
 
     const toCourseArray = (arr: unknown): Course[] => {
       if (!arr || !Array.isArray(arr)) return [];
-      return (arr as any[]).map((it) => ({
-        course: (it as any).course ?? (it as any).name ?? "",
-        score:
-          typeof (it as any).score === "number"
-            ? (it as any).score
-            : Number((it as any).score) || 0,
-        credits:
-          typeof (it as any).credits === "number"
-            ? (it as any).credits
-            : Number((it as any).credits) || 0,
-        status:
-          (it as any).status ??
-          ((it as any).passed ? "Đậu" : (it as any).status) ??
-          "Đậu",
-      }));
+      return (arr as unknown[]).map((it) => {
+        const itRec = (it ?? {}) as Record<string, unknown>;
+        const course = String(itRec["course"] ?? itRec["name"] ?? "");
+        const rawScore =
+          itRec["score"] ??
+          itRec["diem"] ??
+          itRec["Diem"] ??
+          itRec["DiemTrungBinh"];
+        const score =
+          typeof rawScore === "number"
+            ? (rawScore as number)
+            : Number(String(rawScore ?? "").replace(/[^0-9.-]/g, "")) || 0;
+        const rawCredits =
+          itRec["credits"] ??
+          itRec["tin_chi"] ??
+          itRec["So Tin Chi"] ??
+          itRec["TinChi"];
+        const credits =
+          typeof rawCredits === "number"
+            ? (rawCredits as number)
+            : Number(String(rawCredits ?? "").replace(/[^0-9.-]/g, "")) || 0;
+        const statusCandidate =
+          (itRec["status"] as string | undefined) ??
+          (itRec["passed"] as boolean | undefined);
+        const status =
+          typeof statusCandidate === "string"
+            ? statusCandidate
+            : statusCandidate === true
+            ? "Đậu"
+            : "Đậu";
+        return {
+          course,
+          score,
+          credits,
+          status,
+        } as Course;
+      });
     };
 
-    // detailedScores might come as object with string keys
     const rawDetails =
-      r?.detailedScores ??
-      r?.detailed_scores ??
-      r?.scores ??
-      r?.diem ??
+      (r["detailedScores"] as unknown) ??
+      (r["detailed_scores"] as unknown) ??
+      (r["scores"] as unknown) ??
+      (r["diem"] as unknown) ??
       fallback.detailedScores;
     const detailedScores: Record<number, Course[]> = {};
     if (rawDetails && typeof rawDetails === "object") {
-      Object.keys(rawDetails).forEach((k) => {
+      Object.keys(rawDetails as Record<string, unknown>).forEach((k) => {
         const num = Number(k);
         const key = Number.isNaN(num) ? 1 : num;
-        detailedScores[key] = toCourseArray(rawDetails[k]);
+
+        detailedScores[key] = toCourseArray(
+          (rawDetails as Record<string, unknown>)[k]
+        );
       });
     }
 
-    const gpaData = r?.gpaData ?? r?.gpa_data ?? r?.gpa ?? fallback.gpaData;
+    const gpaData =
+      (r["gpaData"] as unknown) ??
+      (r["gpa_data"] as unknown) ??
+      (r["gpa"] as unknown) ??
+      fallback.gpaData;
     const passRateData =
-      r?.passRateData ?? r?.pass_rate ?? r?.passRate ?? fallback.passRateData;
+      (r["passRateData"] as unknown) ??
+      (r["pass_rate"] as unknown) ??
+      (r["passRate"] as unknown) ??
+      fallback.passRateData;
     const trainingScoreData =
-      r?.trainingScoreData ??
-      r?.training_score ??
-      r?.trainingScore ??
+      (r["trainingScoreData"] as unknown) ??
+      (r["training_score"] as unknown) ??
+      (r["trainingScore"] as unknown) ??
       fallback.trainingScoreData;
 
+    const parsedId = Number(
+      String(r["id"] ?? r["mssv"] ?? r["MaSinhVien"] ?? fallback.id)
+    );
+
     const result: Student = {
-      id: r?.id ?? fallback.id,
+      id: Number.isNaN(parsedId) ? fallback.id : parsedId,
       info,
       overallGPA:
-        Number(r?.overallGPA ?? r?.overall_gpa ?? fallback.overallGPA) || 0,
+        Number(r["overallGPA"] ?? r["overall_gpa"] ?? fallback.overallGPA) || 0,
       gpaData: Array.isArray(gpaData)
         ? (gpaData as SemesterGPA[])
         : fallback.gpaData,
@@ -431,12 +477,10 @@ const StudentDashboard: React.FC = () => {
         : fallback.trainingScoreData,
     };
 
-    // debug: show mapped object so you can tune mapping
     console.log("[normalizeStudent] ->", result);
 
     return result;
   };
-  /* eslint-enable @typescript-eslint/no-explicit-any */
   //API lấy thông tin sinh viên
   useEffect(() => {
     let isMounted = true;
@@ -1038,6 +1082,68 @@ const StudentDashboard: React.FC = () => {
   // Don't block rendering while student API loads — render with placeholder
   // `currentStudent` is initialized to an empty fallback so the UI is responsive.
 
+  // Helper to build the same semester key format used in charts: "HKX YY-ZZ" -> e.g. "HK1 24-25"
+  const makeSemKey = (hk: string | undefined, year: string | undefined) => {
+    const hkStr = String(hk ?? "").trim();
+    const yearStr = String(year ?? "").trim();
+    if (!hkStr || !yearStr) return `${hkStr} ${yearStr}`.trim();
+    const parts = yearStr.split("-");
+    const start = parts[0] ?? "";
+    const end = parts[1] ?? "";
+    const yearShort =
+      start.slice(-2) + (end ? `-${String(Number(end) - 2000)}` : "");
+    return `${hkStr} ${yearShort}`.trim();
+  };
+
+  // Load training-score (DRL) records and map them into `currentStudent.trainingScoreData`
+  useEffect(() => {
+    let mounted = true;
+    const loadTraining = async () => {
+      try {
+        const data = await getStudentTrainingScores().catch((e) => {
+          console.warn("Training score API failed:", e);
+          return null;
+        });
+        if (!mounted) return;
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          // no data -> leave existing trainingScoreData alone
+          return;
+        }
+        const mapped: TrainingScore[] = (data as unknown[]).map((r) => {
+          const row = r as Record<string, unknown>;
+
+          const year =
+            (row["Ten Nam Hoc"] as string) ?? String(row["NamHoc"] ?? "");
+          const hk =
+            (row["Ten Hoc Ky"] as string) ?? String(row["HocKy"] ?? "");
+          const raw = row["DRL"] ?? row["drl"] ?? row["DRL"];
+
+          const score =
+            typeof raw === "number"
+              ? raw
+              : Number(String(raw ?? "").replace(/[^0-9.-]/g, "")) || 0;
+
+          return {
+            semester: makeSemKey(hk, year),
+            score,
+          };
+        });
+
+        // merge into currentStudent state
+        setCurrentStudent((prev) => ({
+          ...prev,
+          trainingScoreData: mapped,
+        }));
+      } catch (e) {
+        console.warn("Error loading training scores:", e);
+      }
+    };
+    loadTraining();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const getGradeRank = (gpa: number) => {
     if (gpa >= 3.6) return "Giỏi";
     if (gpa >= 3.2) return "Khá";
@@ -1260,21 +1366,6 @@ const StudentDashboard: React.FC = () => {
       : comparisonWithStudent;
 
   // Calculate GPA vs Training Score correlation data
-  const correlationData = (currentStudent?.gpaData ?? []).map((g) => {
-    const yearShort =
-      g.year.split("-")[0].slice(-2) +
-      "-" +
-      (Number(g.year.split("-")[1]) - 2000);
-    const semKey = `${g.semester} ${yearShort}`;
-    const train =
-      currentStudent.trainingScoreData.find((t) => t.semester === semKey)
-        ?.score ?? 0;
-    return {
-      semester: semKey,
-      gpa: g.gpa,
-      trainingScore: train,
-    };
-  });
 
   const gradeCounts = { Giỏi: 0, Khá: 0, "Trung bình": 0, Yếu: 0 };
 
@@ -1388,46 +1479,27 @@ const StudentDashboard: React.FC = () => {
       : "0.0";
   })();
 
-  const highestLowestData = semesters.map(
-    (sem: { id: number; name: string; year: string }) => {
-      const list = currentStudent?.detailedScores?.[sem.id] ?? [];
-      if (!list || !list.length) {
-        return {
-          semester: sem.name || "",
-          highestScore: 0,
-          highestSubject: "",
-          highestCredits: 0,
-          lowestScore: 0,
-          lowestSubject: "",
-          lowestCredits: 0,
-        };
+  // Debug: log training score array so we can inspect what the API mapping produced
+  const _trainingScoreData = currentStudent?.trainingScoreData ?? [];
+  useEffect(() => {
+    try {
+      console.log("[StudentDashboard] trainingScoreData:", _trainingScoreData);
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error(e.message);
       }
-      const highest = list.reduce(
-        (acc, cur) => (cur.score > acc.score ? cur : acc),
-        list[0]
-      );
-      const lowest = list.reduce(
-        (acc, cur) => (cur.score < acc.score ? cur : acc),
-        list[0]
-      );
-      return {
-        semester: sem.name || "",
-        highestScore: highest.score,
-        highestSubject: highest.course,
-        highestCredits: highest.credits,
-        lowestScore: lowest.score,
-        lowestSubject: lowest.course,
-        lowestCredits: lowest.credits,
-      };
     }
-  );
+  }, [_trainingScoreData]);
 
   // selectedSemesterName removed — previously used for per-bar stroke highlighting
 
   // (Pass/Fail by semester calculation removed — not used in simplified mock)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6 rounded-lg">
+    <div
+      className="min-h-screen bg-[#F5F7FA] p-6"
+      style={{ fontFamily: "Inter, Manrope, Outfit, sans-serif" }}
+    >
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Tabs */}
         <div className="flex gap-2">
@@ -1462,7 +1534,7 @@ const StudentDashboard: React.FC = () => {
 
         {/* Prediction tab content */}
         {selectedTab === "prediction" && (
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-slate-200">
+          <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
             <h2 className="text-xl font-bold text-slate-800 mb-4">
               Dự đoán hiệu suất tương lai
             </h2>
@@ -1484,9 +1556,9 @@ const StudentDashboard: React.FC = () => {
                 Đang tải dữ liệu...
               </div>
             ) : (
-              <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+              <div className="bg-white rounded-lg p-8 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
                 <div className="flex items-center gap-6">
-                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl">
+                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-lg">
                     <User className="w-12 h-12 text-white" />
                   </div>
 
@@ -1515,27 +1587,76 @@ const StudentDashboard: React.FC = () => {
             )}
             {/* GPA Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                  Xu hướng GPA theo học kỳ
-                </h2>
+              <div className="lg:col-span-2 bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-blue-50 rounded-xl">
+                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    Xu hướng GPA theo học kỳ
+                  </h2>
+                </div>
                 {(() => {
                   const chartGpaData =
                     computedGpaData ?? currentStudent.gpaData;
+
+                  // Calculate dynamic Y-axis max
+                  const maxGpa =
+                    chartGpaData.length > 0
+                      ? Math.max(...chartGpaData.map((d) => d.gpa))
+                      : 0;
+
+                  const dynamicYMax = maxGpa < 6 ? 6 : Math.ceil(maxGpa);
+
+                  // Dynamic margin calculation based on data points
+                  const dataPointCount = chartGpaData.length;
+                  const rightMargin = dataPointCount <= 3 ? 30 : 10;
+                  const leftMargin = dataPointCount <= 3 ? 10 : -20;
+
                   return (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={chartGpaData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="semester" stroke="#64748b" />
-                        <YAxis domain={[0, 10]} stroke="#64748b" />
+                    <ResponsiveContainer width="100%" height={320}>
+                      <LineChart
+                        data={chartGpaData}
+                        margin={{
+                          top: 10,
+                          right: rightMargin,
+                          left: leftMargin,
+                          bottom: 10,
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#e2e8f0"
+                          opacity={0.6}
+                        />
+                        <XAxis
+                          dataKey="semester"
+                          stroke="#64748b"
+                          tick={{ fontSize: 12 }}
+                          padding={{ left: 0, right: 0 }}
+                          interval="preserveStartEnd"
+                          tickLine={false}
+                          scale="point"
+                        />
+                        <YAxis
+                          domain={[0, dynamicYMax]}
+                          stroke="#64748b"
+                          tick={{ fontSize: 12 }}
+                          tickLine={false}
+                        />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "#fff",
-                            border: "2px solid #e2e8f0",
+                            border: "none",
                             borderRadius: "12px",
+                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                            padding: "12px 16px",
                           }}
-                          labelStyle={{ fontWeight: "bold", color: "#1e293b" }}
+                          labelStyle={{
+                            fontWeight: "600",
+                            color: "#1e293b",
+                            fontSize: "13px",
+                          }}
                           formatter={(
                             value: number,
                             _name: string,
@@ -1547,14 +1668,22 @@ const StudentDashboard: React.FC = () => {
                             "GPA",
                           ]}
                         />
-                        <Legend />
+                        <Legend
+                          wrapperStyle={{ paddingTop: "16px" }}
+                          iconType="circle"
+                        />
                         <Line
                           type="monotone"
                           dataKey="gpa"
-                          stroke="#3b82f6"
+                          stroke="#3B82F6"
                           strokeWidth={3}
-                          dot={{ fill: "#3b82f6", r: 6, cursor: "pointer" }}
-                          activeDot={{ r: 8, cursor: "pointer" }}
+                          dot={{
+                            fill: "#3B82F6",
+                            r: 5,
+                            strokeWidth: 2,
+                            stroke: "#fff",
+                          }}
+                          activeDot={{ r: 7, fill: "#2563EB" }}
                           name="GPA"
                         />
                       </LineChart>
@@ -1563,12 +1692,16 @@ const StudentDashboard: React.FC = () => {
                 })()}
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
-                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-purple-600" />
-                  GPA Trung bình
-                </h2>
-                <ResponsiveContainer width="100%" height={300}>
+              <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-purple-50 rounded-xl">
+                    <Award className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    GPA Trung bình
+                  </h2>
+                </div>
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie
                       data={[
@@ -1591,8 +1724,8 @@ const StudentDashboard: React.FC = () => {
                         console.log("Clicked GPA donut segment:", data);
                       }}
                     >
-                      <Cell fill="#3b82f6" style={{ cursor: "pointer" }} />
-                      <Cell fill="#e2e8f0" style={{ cursor: "pointer" }} />
+                      <Cell fill="#3B82F6" />
+                      <Cell fill="#F1F5F9" />
                     </Pie>
                     <Tooltip
                       formatter={(value: number | string, name: string) => [
@@ -1601,8 +1734,10 @@ const StudentDashboard: React.FC = () => {
                       ]}
                       contentStyle={{
                         backgroundColor: "#fff",
-                        border: "2px solid #e2e8f0",
+                        border: "none",
                         borderRadius: "12px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        padding: "12px 16px",
                       }}
                     />
                   </PieChart>
@@ -1622,7 +1757,7 @@ const StudentDashboard: React.FC = () => {
               </div>
             </div>
             {/* Semester Selection */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+            <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <BookOpen className="w-6 h-6 text-blue-600" />
@@ -1675,7 +1810,7 @@ const StudentDashboard: React.FC = () => {
             </div>
 
             {/* Detailed Scores Table */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+            <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
               <h2 className="text-xl font-bold text-slate-800 mb-4">
                 Bảng điểm chi tiết -{" "}
                 {
@@ -1755,58 +1890,60 @@ const StudentDashboard: React.FC = () => {
                 </table>
               </div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               {/* Pass Rate */}
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <Target className="w-6 h-6 text-green-600" />
-                    Tỷ lệ Đậu/Rớt theo tín chỉ
-                  </h2>
-                  <div className="bg-green-100 px-3 py-3 rounded-lg text-center w-54">
-                    <div className="text-sm text-green-700">
+              <div className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-200/50 w-full">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded-xl">
+                      <Target className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">
+                      Tỷ lệ Đậu/Rớt theo tín chỉ
+                    </h2>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 px-6 py-4 rounded-xl border border-green-100">
+                    <div className="text-sm font-medium text-green-700 mb-1">
                       Tỷ lệ qua môn toàn khóa
                     </div>
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-3xl font-bold text-green-600">
                       {overallPassRate}%
                     </div>
                   </div>
                 </div>
-                <ResponsiveContainer width="100%" height={400}>
-                  {/* Chart data prepared earlier as `passChartData` */}
+                <ResponsiveContainer width="100%" height={360}>
                   <BarChart
                     data={passChartData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                    barCategoryGap="40%" // more spacing between semesters
-                    barGap={8} // spacing between stacked/grouped bars
+                    margin={{ top: 10, right: 20, left: 20, bottom: 10 }}
+                    barCategoryGap="20%"
+                    barGap={0}
+                    layout="horizontal"
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e2e8f0"
+                      opacity={0.6}
+                    />
                     <XAxis
                       dataKey="semester"
                       stroke="#64748b"
-                      label={{
-                        value: "Học kỳ",
-                        position: "insideBottom",
-                        offset: -10,
-                        style: { fill: "#64748b", fontWeight: "bold" },
-                      }}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
                     />
                     <YAxis
                       stroke="#64748b"
-                      label={{
-                        value: "Số tín chỉ",
-                        angle: -90,
-                        position: "insideLeft",
-                        style: { fill: "#64748b", fontWeight: "bold" },
-                      }}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
                     />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#fff",
-                        border: "2px solid #e2e8f0",
+                        border: "none",
                         borderRadius: "12px",
-                        padding: "12px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        padding: "12px 16px",
                       }}
+                      labelStyle={{ fontWeight: "600", fontSize: "13px" }}
                       formatter={(
                         value: number,
                         name: string,
@@ -1823,39 +1960,22 @@ const StudentDashboard: React.FC = () => {
                       labelFormatter={(label) => `Học kỳ: ${label}`}
                     />
                     <Legend
-                      formatter={(value) => (
-                        <span style={{ color: "#64748b", cursor: "pointer" }}>
-                          {value}
-                        </span>
-                      )}
-                      onClick={(e) => {
-                        console.log("Legend clicked:", e.value);
-                      }}
-                      wrapperStyle={{ paddingTop: "20px" }}
+                      wrapperStyle={{ paddingTop: "16px" }}
+                      iconType="circle"
                     />
-                    {/* Render passed bars in two layers:
-                        - topRoundedPassedData: semesters with no failed courses -> rounded top corners
-                        - normalPassedData: semesters with failed courses -> no rounding (lower segment)
-                        This avoids double-rounded visuals while keeping passed-only bars rounded. */}
                     <Bar
                       dataKey="passedCredits"
-                      stackId="a"
-                      fill="#10b981"
-                      barSize={14}
+                      fill="#22C55E"
+                      barSize={40}
                       name="Đậu"
-                      style={{ cursor: "pointer" }}
-                    >
-                      {passChartData.map((_, idx) => (
-                        <Cell key={idx} fill="#10b981" />
-                      ))}
-                    </Bar>
+                      radius={[6, 6, 0, 0]}
+                    />
                     <Bar
                       dataKey="failedCredits"
-                      stackId="a"
-                      fill="#ef4444"
+                      fill="#EF4444"
                       name="Rớt"
-                      barSize={14}
-                      style={{ cursor: "pointer" }}
+                      barSize={40}
+                      radius={[6, 6, 0, 0]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1864,49 +1984,96 @@ const StudentDashboard: React.FC = () => {
               <StudentScoreChartHighestLowest />
             </div>
             {/* Comparison with Average */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
-              <h2 className="text-xl font-bold text-slate-800 mb-33 mt-6 flex items-center gap-2 ">
-                So sánh với điểm trung bình lớp
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <ComposedChart data={filteredComparison}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  {/* Hide course names on X axis (keep tooltips active) */}
-                  <XAxis dataKey="course" stroke="#64748b" tick={false} />
-                  <YAxis stroke="#64748b" domain={[0, 10]} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "2px solid #e2e8f0",
-                      borderRadius: "12px",
-                    }}
-                    formatter={(value: number, name: string) => [
-                      `${value.toFixed(1)} / 10.0`,
-                      name,
-                    ]}
-                  />
-                  <Legend />
-                  <Bar
-                    dataKey="student"
-                    fill="#3b82f6"
-                    name="Điểm của bạn"
-                    barSize={30} // thinner bars for comparison
-                    style={{ cursor: "pointer" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="average"
-                    stroke="#ef4444"
-                    strokeWidth={3}
-                    name="Điểm trung bình môn học"
-                    dot={{ fill: "#ef4444", r: 5, cursor: "pointer" }}
-                    activeDot={{ r: 7, cursor: "pointer" }}
-                  />
-                </ComposedChart>
+            <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 w-full">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-50 rounded-xl">
+                  <TrendingUp className="w-6 h-6 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  So sánh với điểm trung bình lớp
+                </h2>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                {(() => {
+                  // Calculate dynamic Y-axis max for comparison chart
+                  const allScores = filteredComparison.flatMap((d) => [
+                    d.student || 0,
+                    d.average || 0,
+                  ]);
+                  const dynamicComparisonMax = getDynamicAxisMax(
+                    allScores,
+                    6,
+                    1
+                  );
+
+                  return (
+                    <ComposedChart
+                      data={filteredComparison}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#e2e8f0"
+                        opacity={0.6}
+                      />
+                      <XAxis
+                        dataKey="course"
+                        stroke="#64748b"
+                        tick={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        stroke="#64748b"
+                        domain={[0, dynamicComparisonMax]}
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#fff",
+                          border: "none",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                          padding: "12px 16px",
+                        }}
+                        labelStyle={{ fontWeight: "600", fontSize: "13px" }}
+                        formatter={(value: number, name: string) => [
+                          `${value.toFixed(1)} / 10.0`,
+                          name,
+                        ]}
+                      />
+                      <Legend
+                        wrapperStyle={{ paddingTop: "16px" }}
+                        iconType="circle"
+                      />
+                      <Bar
+                        dataKey="student"
+                        fill="#3B82F6"
+                        name="Điểm của bạn"
+                        barSize={24}
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="average"
+                        stroke="#EF4444"
+                        strokeWidth={3}
+                        name="Điểm trung bình môn học"
+                        dot={{
+                          fill: "#EF4444",
+                          r: 5,
+                          strokeWidth: 2,
+                          stroke: "#fff",
+                        }}
+                        activeDot={{ r: 7, fill: "#DC2626" }}
+                      />
+                    </ComposedChart>
+                  );
+                })()}
               </ResponsiveContainer>
             </div>
             {/* Subject Grade Distribution */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+            <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <Award className="w-6 h-6 text-indigo-600" />
@@ -2019,39 +2186,111 @@ const StudentDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               {/* Training Score */}
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 w-full">
-                <h2 className="text-xl font-bold text-slate-800 mb-14">
-                  Điểm rèn luyện qua các học kỳ
-                </h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={currentStudent.trainingScoreData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="semester" stroke="#64748b" />
-                    <YAxis domain={[0, 100]} stroke="#64748b" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#fff",
-                        border: "2px solid #e2e8f0",
-                        borderRadius: "12px",
-                      }}
-                      formatter={(value: number) => [
-                        `${value} điểm`,
-                        "Điểm rèn luyện",
-                      ]}
-                    />
-                    <Bar
-                      dataKey="score"
-                      fill="#8b5cf6"
-                      name="Điểm rèn luyện"
-                      barSize={12} // thinner training score bars
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 w-full">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-indigo-50 rounded-xl">
+                    <TrendingUp className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    Điểm rèn luyện qua các học kỳ
+                  </h2>
+                </div>
+                {/* Defensive: show friendly placeholder when there's no DRL data */}
+                {!(
+                  currentStudent?.trainingScoreData &&
+                  currentStudent.trainingScoreData.length
+                ) ? (
+                  <div className="p-6 text-center text-slate-500">
+                    Không có dữ liệu điểm rèn luyện để hiển thị.
+                    <div className="mt-3 text-xs text-slate-400">
+                      (Nếu bạn đang dùng API thật, kiểm tra console để xem
+                      payload.)
+                    </div>
+                    <pre className="mt-2 hidden" aria-hidden>
+                      {JSON.stringify(
+                        currentStudent?.trainingScoreData ?? [],
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={320}>
+                    {(() => {
+                      // Calculate dynamic Y-axis max for DRL chart
+                      const drlScores = (
+                        currentStudent.trainingScoreData || []
+                      ).map((d) => d.score || 0);
+                      const maxDrl = Math.max(
+                        ...drlScores.filter((v) => Number.isFinite(v))
+                      );
+                      const dynamicDrlMax =
+                        maxDrl < 60 ? 60 : Math.ceil(maxDrl / 10) * 10;
+
+                      return (
+                        <LineChart
+                          data={currentStudent.trainingScoreData}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e2e8f0"
+                            opacity={0.6}
+                          />
+                          <XAxis
+                            dataKey="semester"
+                            stroke="#64748b"
+                            tick={{ fontSize: 12 }}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            domain={[0, dynamicDrlMax]}
+                            stroke="#64748b"
+                            tick={{ fontSize: 12 }}
+                            tickLine={false}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "#fff",
+                              border: "none",
+                              borderRadius: "12px",
+                              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                              padding: "12px 16px",
+                            }}
+                            labelStyle={{ fontWeight: "600", fontSize: "13px" }}
+                            formatter={(value: number) => [
+                              `${Number(value).toFixed(1)} điểm`,
+                              "Điểm rèn luyện",
+                            ]}
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: "16px" }}
+                            iconType="circle"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="score"
+                            stroke="#6366F1"
+                            strokeWidth={3}
+                            dot={{
+                              r: 5,
+                              fill: "#6366F1",
+                              stroke: "#fff",
+                              strokeWidth: 2,
+                            }}
+                            activeDot={{ r: 7, fill: "#4F46E5" }}
+                            name="Điểm rèn luyện"
+                          />
+                        </LineChart>
+                      );
+                    })()}
+                  </ResponsiveContainer>
+                )}
               </div>
 
-              <RateGpaAndPoint/>
+              <RateGpaAndPoint />
             </div>
           </>
         )}

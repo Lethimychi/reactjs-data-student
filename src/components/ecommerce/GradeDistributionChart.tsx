@@ -24,7 +24,7 @@ export default function GradeDistributionChart({
   return (
     <div className="rounded-2xl bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-200">
       <h4 className="font-semibold text-slate-700 text-lg mb-3">
-        Grade Distribution (Donut)
+        Phân bố học lực sinh viên trong lớp
       </h4>
       <div className={className ?? "w-full h-64"}>
         <ResponsiveContainer>

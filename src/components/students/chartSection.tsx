@@ -190,9 +190,9 @@ const ChartsSection: React.FC = () => {
                     name === "gpa" ? v.toFixed(2) : v
                   }
                 />
-                <Scatter data={correlationData} fill="#8b5cf6">
+                <Scatter data={correlationData} fill="#3b82f6">
                   {correlationData.map((_, i) => (
-                    <Cell key={i} fill="#8b5cf6" opacity={0.7} />
+                    <Cell key={i} fill="#3b82f6" opacity={0.7} />
                   ))}
                 </Scatter>
               </ScatterChart>

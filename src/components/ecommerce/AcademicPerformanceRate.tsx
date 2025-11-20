@@ -1,5 +1,3 @@
-import { ResponsiveContainer } from "recharts";
-
 const data = [
   { subject: "Anh văn 1", rate: 12 },
   { subject: "Toán cao cấp", rate: 8 },
@@ -14,7 +12,7 @@ export default function TopFailingSubjectsChart({
   return (
     <div className="rounded-2xl bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-200">
       <h4 className="font-semibold text-slate-700 text-lg mb-3">
-        Top Failing Subjects (Horizontal)
+        Số lượng sinh viên đậu theo từng môn
       </h4>
       <div className={className ?? "w-full h-64"}>
         <div className="space-y-3">
