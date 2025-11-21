@@ -63,12 +63,12 @@ export function RateGpaAndPoint() {
   const dynamicDrlMax = getDynamicAxisMax(drlValues, 60, 10);
 
   return (
-    <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 w-full">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-md shadow-blue-100/40 w-full">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-purple-50 rounded-xl">
-          <TrendingUp className="w-6 h-6 text-purple-600" />
+        <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl">
+          <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800">
+        <h2 className="text-xl font-bold text-slate-800 dark:text-white">
           Tương quan GPA và Điểm rèn luyện
         </h2>
       </div>
@@ -128,10 +128,12 @@ export function RateGpaAndPoint() {
         </ScatterChart>
       </ResponsiveContainer>
 
-      <div className="mt-6 p-2 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-        <p className="text-sm text-slate-700">
-          <span className="font-semibold text-slate-800">Nhận xét:</span>{" "}
-          <span className="text-purple-700 font-semibold">
+      <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 dark:from-purple-900/20 to-pink-50 dark:to-pink-900/20 rounded-xl border border-purple-100 dark:border-purple-800">
+        <p className="text-sm text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-800 dark:text-white">
+            Nhận xét:
+          </span>{" "}
+          <span className="text-purple-700 dark:text-purple-400 font-semibold">
             Tương quan thuận rõ rệt
           </span>{" "}
           – điểm rèn luyện tăng khi GPA tăng.

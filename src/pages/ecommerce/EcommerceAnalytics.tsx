@@ -1,12 +1,12 @@
-import PageMeta from "../../components/common/PageMeta";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
-import AnalyticsStatCard from "../../analytics/AnalyticsStatCard";
-import CurrentVisitsDonut from "../../analytics/CurrentVisitsDonut";
-import WebsiteVisitsColumnChart from "../../analytics/WebsiteVisitsColumnChart";
-import ConversionRatesList from "../../analytics/ConversionRatesList";
-import SubjectPerformanceRadar from "../../analytics/SubjectPerformanceRadar";
-import LatestNewsCard from "../../analytics/LatestNewsCard";
-import OrderTimelineCard from "../../analytics/OrderTimelineCard";
+//import PageMeta from "../../components/common/PageMeta";
+//import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import AnalyticsStatCard from "../../components/analytics/AnalyticsStatCard";
+import CurrentVisitsDonut from "../../components/analytics/CurrentVisitsDonut";
+import WebsiteVisitsColumnChart from "../../components/analytics/WebsiteVisitsColumnChart";
+import ConversionRatesList from "../../components/analytics/ConversionRatesList";
+import SubjectPerformanceRadar from "../../components/analytics/SubjectPerformanceRadar";
+import LatestNewsCard from "../../components/analytics/LatestNewsCard";
+import OrderTimelineCard from "../../components/analytics/OrderTimelineCard";
 
 // charts used elsewhere kept in repo but not shown in this layout
 
@@ -60,19 +60,19 @@ const statCards = [
 export default function EcommerceAnalytics() {
   return (
     <>
-      <PageMeta
+      {/* <PageMeta
         title="Advanced Ecommerce Dashboard | TailAdmin - React.js Admin Dashboard Template"
         description="Advanced ecommerce analytics dashboard highlighting KPIs, traffic insights, conversion performance, and order timeline."
       />
-      <PageBreadcrumb pageTitle="Ecommerce Analytics" />
+      <PageBreadcrumb pageTitle="Ecommerce Analytics" /> */}
 
-      <div className="space-y-6 bg-slate-50 p-6 rounded-lg">
+      <div className="space-y-6 bg-white p-6 rounded-lg">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-slate-500">Hi, Welcome back 👋</p>
             <h2 className="text-2xl font-semibold text-slate-700 mt-1">
-              Ecommerce & Academic Overview
+              Mã số sinh viên: 20120001 - Nguyễn Văn A - Lớp: KTPM2020 - Khoa:
+              Công nghệ thông tin
             </h2>
           </div>
         </div>

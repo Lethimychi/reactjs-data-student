@@ -26,11 +26,6 @@ export default function CurrentVisitsDonut({
       labels: {
         colors: "#6B7280",
       },
-      markers: {
-        width: 10,
-        height: 10,
-        radius: 12,
-      },
     },
     dataLabels: {
       enabled: false,

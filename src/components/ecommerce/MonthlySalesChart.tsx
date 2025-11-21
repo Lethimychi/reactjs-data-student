@@ -1,26 +1,22 @@
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-// import { Dropdown } from "../ui/dropdown/Dropdown";
-// import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
-import { useState } from "react";
 
 export default function MonthlySalesChart() {
   const options: ApexOptions = {
-    colors: ["#465fff"],
+    colors: ["#3B82F6"],
     chart: {
       fontFamily: "Inter, sans-serif",
       type: "bar",
-      height: 180,
-      toolbar: {
-        show: false,
-      },
+      height: 200,
+      toolbar: { show: false },
+      sparkline: { enabled: false },
     },
     plotOptions: {
       bar: {
         horizontal: false,
-        columnWidth: "39%",
-        borderRadius: 5,
+        columnWidth: "45%",
+        borderRadius: 6,
         borderRadiusApplication: "end",
       },
     },
@@ -29,98 +25,35 @@ export default function MonthlySalesChart() {
     },
     stroke: {
       show: true,
-      width: 4,
+      width: 0,
       colors: ["transparent"],
     },
     xaxis: {
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-      ],
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
+      categories: ["Jan", "Feb", "Mar", "Apr", "May"],
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      labels: {
+        style: { colors: "#64748B", fontSize: "12px", fontFamily: "Inter" },
       },
     },
-    legend: {
-      show: true,
-      position: "top",
-      horizontalAlign: "left",
-      fontFamily: "Inter",
-    },
+    legend: { show: false },
     yaxis: {
-      title: {
-        text: undefined,
-      },
+      title: { text: undefined },
+      labels: { style: { colors: "#64748B", fontSize: "12px" } },
     },
     grid: {
-      yaxis: {
-        lines: {
-          show: true,
-        },
-      },
+      show: true,
+      borderColor: "#E2E8F0",
+      strokeDashArray: 3,
+      xaxis: { lines: { show: false } },
+      yaxis: { lines: { show: true } },
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
     },
-    fill: {
-      opacity: 1,
-    },
-
+    fill: { opacity: 1 },
     tooltip: {
-      x: {
-        show: false,
-      },
-      y: {
-        formatter: (val: number) => `${val}`,
-      },
+      x: { show: false },
+      y: { formatter: (val: number) => `${val}` },
+      style: { fontSize: "12px" },
     },
   };
   const series = [
@@ -129,50 +62,22 @@ export default function MonthlySalesChart() {
       data: [168, 385, 201, 298, 187],
     },
   ];
-  const [isOpen, setIsOpen] = useState(false);
 
-  function toggleDropdown() {
-    setIsOpen(!isOpen);
-  }
-
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          GPA của sinh viên trong lớp
-        </h3>
-        <div className="relative inline-block">
-          <button className="dropdown-toggle" onClick={toggleDropdown}>
-            <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 size-6" />
-          </button>
-          {/* <Dropdown
-            isOpen={isOpen}
-            onClose={closeDropdown}
-            className="w-40 p-2"
-          >
-            <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              View More
-            </DropdownItem>
-            <DropdownItem
-              onItemClick={closeDropdown}
-              className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-            >
-              Delete
-            </DropdownItem>
-          </Dropdown> */}
+    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-800">
+            GPA của sinh viên trong lớp
+          </h3>
+          <p className="text-sm text-slate-500 mt-1">Analysis</p>
         </div>
+        <button className="text-slate-400 hover:text-slate-600 transition-colors">
+          <MoreDotIcon className="size-5" />
+        </button>
       </div>
-
-      <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="-ml-5 min-w-[650px] xl:min-w-full pl-2">
-          <Chart options={options} series={series} type="bar" height={180} />
-        </div>
+      <div className="w-full overflow-x-auto">
+        <Chart options={options} series={series} type="bar" height={200} />
       </div>
     </div>
   );

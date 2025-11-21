@@ -74,7 +74,7 @@ export default function RecentOrders() {
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
+            Danh sách sinh viên
           </h3>
         </div>
 
@@ -129,27 +129,22 @@ export default function RecentOrders() {
             <TableRow>
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
               >
-                Products
+                Mã sinh viên
               </TableCell>
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
               >
-                Category
+                Tên sinh viên
               </TableCell>
+
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
               >
-                Price
-              </TableCell>
-              <TableCell
-                isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Status
+                Xu hướng gpa
               </TableCell>
             </TableRow>
           </TableHeader>
@@ -159,17 +154,10 @@ export default function RecentOrders() {
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
             {tableData.map((product) => (
               <TableRow key={product.id} className="">
-                <TableCell className="py-3">
+                <TableCell className="py-3 w-80">
                   <div className="flex items-center gap-3">
-                    <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
-                      <img
-                        src={product.image}
-                        className="h-[50px] w-[50px]"
-                        alt={product.name}
-                      />
-                    </div>
                     <div>
-                      <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                      <p className="font-medium text-gray-800 text-theme-sm dark:text-white/120">
                         {product.name}
                       </p>
                       <span className="text-gray-500 text-theme-xs dark:text-gray-400">
@@ -178,12 +166,10 @@ export default function RecentOrders() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400/120 w-120">
                   {product.price}
                 </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {product.category}
-                </TableCell>
+
                 <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                   <Badge
                     size="sm"

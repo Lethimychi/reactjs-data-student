@@ -1,63 +1,50 @@
 import { useEffect, useState } from "react";
-import { ArrowDownIcon, BoxIconLine, GroupIcon } from "../../icons";
+import { BoxIconLine, GroupIcon } from "../../icons";
 import Badge from "../ui/badge/Badge";
-import { fetchStudentStats } from "../../utils/ClassLecturerApi";
+import {
+  fetchStudentCount,
+  fetchClassPerformance,
+} from "../../utils/ClassLecturerApi";
 
 interface Props {
   selectedSemesterId?: number | null;
   selectedClassId?: number | null;
   selectedClassName?: string | null;
+  studentTotalOverride?: number; // allow override from parent if already loaded
 }
 
 export default function EcommerceMetrics({
   selectedSemesterId,
   selectedClassId,
   selectedClassName,
+  studentTotalOverride,
 }: Props) {
-  const classList = [
-    {
-      id: 1,
-      name: "CNTT K59",
-      instructor: "Nguyễn A",
-      students: 28,
-      avgGPA: 3.42,
-    },
-    {
-      id: 2,
-      name: "CNTT K60",
-      instructor: "Trần B",
-      students: 32,
-      avgGPA: 3.21,
-    },
-    { id: 3, name: "Mạng K59", instructor: "Lê C", students: 25, avgGPA: 3.1 },
-    {
-      id: 4,
-      name: "An toàn K59",
-      instructor: "Phạm D",
-      students: 22,
-      avgGPA: 3.05,
-    },
-  ];
-
   const shorten = (s: string, max = 12) =>
     s && s.length > max ? s.slice(0, max) + "…" : s;
   const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [passRate, setPassRate] = useState<number | null>(null);
+  const [debtCount, setDebtCount] = useState<number | null>(null);
 
   void shorten;
-  void classList;
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (studentTotalOverride !== undefined) {
+        setStudentCount(studentTotalOverride);
+        return;
+      }
+      if (!selectedClassName) {
+        setStudentCount(0);
+        return;
+      }
       setLoading(true);
       try {
-        const stats = await fetchStudentStats(selectedClassName ?? undefined);
-        if (!cancelled && stats) {
-          setStudentCount(stats["Tong_SV"]);
-        }
-      } catch (err) {
-        console.error("Failed to load student stats", err);
+        const count = await fetchStudentCount(selectedClassName);
+        if (!cancelled) setStudentCount(count ?? 0);
+      } catch {
+        if (!cancelled) setStudentCount(0);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -66,77 +53,101 @@ export default function EcommerceMetrics({
     return () => {
       cancelled = true;
     };
-  }, [selectedSemesterId, selectedClassId, selectedClassName]);
+  }, [
+    selectedSemesterId,
+    selectedClassId,
+    selectedClassName,
+    studentTotalOverride,
+  ]);
+
+  // Load performance (Ty_Le_Dau & So_Rot)
+  useEffect(() => {
+    let cancelled = false;
+    const loadPerf = async () => {
+      if (!selectedClassName) {
+        setPassRate(null);
+        setDebtCount(null);
+        return;
+      }
+      try {
+        // We pass semester display string if available by finding label in parent later; for now just class
+        const perf = await fetchClassPerformance(selectedClassName);
+        if (!cancelled) {
+          setPassRate(perf.passRate);
+          setDebtCount(perf.debtCount);
+        }
+      } catch {
+        if (!cancelled) {
+          setPassRate(null);
+          setDebtCount(null);
+        }
+      }
+    };
+    void loadPerf();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSemesterId, selectedClassName]);
 
   return (
     <div className="space-y-6">
-      {/* Filters row: placed first and horizontal */}
-
-      {/* Top ecommerce metrics (kept intact) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
-        {/* <!-- Metric Item Start --> */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <GroupIcon className="text-gray-800 size-6 dark:text-white/90" />
-          </div>
-
-          <div className="flex items-end  mt-2 w-45 h-21">
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Sinh viên
-              </span>
-              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                {loading ? "..." : studentCount.toLocaleString()}
-              </h4>
+      {/* KPI Cards Grid - Equal Heights */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 items-stretch">
+        {/* Card 1: Students */}
+        <div className="bg-white rounded-2xl shadow-md shadow-slate-200 p-6 flex flex-col justify-between h-full min-h-[160px] md:min-h-[180px]">
+          <div>
+            <div className="flex items-center justify-center w-12 h-12 bg-slate-100 rounded-xl mb-4">
+              <GroupIcon className="text-slate-700 size-6" />
             </div>
-            <Badge color="success">30 Nam - 30 Nữ</Badge>
+            <span className="text-sm text-slate-500 font-medium">
+              Sinh viên
+            </span>
+            <h4 className="mt-3 text-2xl font-bold text-slate-800">
+              {loading ? "..." : studentCount.toLocaleString()}
+            </h4>
           </div>
+          <Badge color="success">30 Nam - 30 Nữ</Badge>
         </div>
-        {/* <!-- Metric Item End --> */}
 
-        {/* <!-- Metric Item Start --> */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <BoxIconLine className="text-gray-800 size-6 dark:text-white/90" />
-          </div>
-          <div className="flex items-end justify-between mt-5 w-42 ">
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Tỷ lệ qua môn
-              </span>
-              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-                80.8%
-              </h4>
+        {/* Card 2: Pass Rate */}
+        <div className="bg-white rounded-2xl shadow-md shadow-slate-200 p-6 flex flex-col justify-between h-full min-h-[160px] md:min-h-[180px]">
+          <div>
+            <div className="flex items-center justify-center w-12 h-12 bg-slate-100 rounded-xl mb-4">
+              <BoxIconLine className="text-slate-700 size-6" />
             </div>
+            <span className="text-sm text-slate-500 font-medium">
+              Tỷ lệ qua môn
+            </span>
+            <h4 className="mt-3 text-2xl font-bold text-slate-800">
+              {passRate === null ? "--" : `${(passRate * 100).toFixed(0)}%`}
+            </h4>
+          </div>
+          <Badge
+            color={passRate !== null && passRate >= 0.5 ? "success" : "error"}
+          >
+            {passRate === null ? "N/A" : `${(passRate * 100).toFixed(1)}%`}
+          </Badge>
+        </div>
 
-            <Badge color="error">
-              <ArrowDownIcon />
-              9.05%
-            </Badge>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-          <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
-            <BoxIconLine className="text-gray-800 size-6 dark:text-white/90" />
-          </div>
-          <div className="flex items-end justify-between mt-5 w-47">
-            <div>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                Sinh viên nợ môn
-              </span>
-              <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90 w-10">
-                10
-              </h4>
+        {/* Card 3: Students with Debt (So_Rot) */}
+        <div className="bg-white rounded-2xl shadow-md shadow-slate-200 p-6 flex flex-col justify-between h-full min-h-[160px] md:min-h-[180px]">
+          <div>
+            <div className="flex items-center justify-center w-12 h-12 bg-slate-100 rounded-xl mb-4">
+              <BoxIconLine className="text-slate-700 size-6" />
             </div>
-            <div style={{ position: "relative", left: "-20px" }}>
-              <Badge color="error">
-                <ArrowDownIcon />
-                9.05%
-              </Badge>
-            </div>
+            <span className="text-sm text-slate-500 font-medium">
+              Sinh viên nợ môn
+            </span>
+            <h4 className="mt-3 text-2xl font-bold text-slate-800">
+              {debtCount === null ? "--" : debtCount.toString()}
+            </h4>
           </div>
+          <Badge
+            color={debtCount !== null && debtCount === 0 ? "success" : "error"}
+          >
+            {debtCount === null ? "N/A" : `${debtCount} SV`}
+          </Badge>
         </div>
-        {/* <!-- Metric Item End --> */}
       </div>
 
       {/* Academic Advisor Dashboard */}

@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from "recharts";
 
 export default function PassFailRateChart({
@@ -22,20 +21,41 @@ export default function PassFailRateChart({
   ];
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-200">
-      <h4 className="font-semibold text-slate-700 text-lg mb-3">
+    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
+      <h4 className="text-lg font-semibold text-slate-800 mb-1">
         Pass / Fail Rate
       </h4>
+      <p className="text-sm text-slate-500 mb-6">Student Performance</p>
       <div className={className ?? "w-full h-64"}>
         <ResponsiveContainer>
           <BarChart data={data} margin={{ left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="semester" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="passed" stackId="a" fill="#3b82f6" />
-            <Bar dataKey="failed" stackId="a" fill="#ef4444" />
+            <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="semester"
+              stroke="#64748B"
+              style={{ fontSize: "12px" }}
+            />
+            <YAxis stroke="#64748B" style={{ fontSize: "12px" }} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#1E293B",
+                border: "none",
+                borderRadius: "6px",
+                color: "#fff",
+              }}
+            />
+            <Bar
+              dataKey="passed"
+              stackId="a"
+              fill="#3B82F6"
+              radius={[6, 6, 0, 0]}
+            />
+            <Bar
+              dataKey="failed"
+              stackId="a"
+              fill="#FCA5A5"
+              radius={[6, 6, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

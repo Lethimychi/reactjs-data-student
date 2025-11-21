@@ -15,10 +15,11 @@ import GradeDistributionChart from "../../components/ecommerce/GradeDistribution
 //import MonthlySalesChart from "../../components/ecommerce/MonthlySalesChart";
 import GPA_Conduct from "../../components/ecommerce/GPA_Conduct";
 import {
-  ClassItem,
   Semester,
-  fetchClassesBySemester,
+  ClassItem,
   fetchSemesters,
+  fetchAllClasses,
+  fetchStudentCount,
 } from "../../utils/ClassLecturerApi";
 
 type LoadingState = "idle" | "loading" | "error" | "success";
@@ -37,33 +38,27 @@ export default function Home(): JSX.Element {
   const [classStatus, setClassStatus] = useState<LoadingState>("idle");
   const [semesterError, setSemesterError] = useState<string | null>(null);
   const [classError, setClassError] = useState<string | null>(null);
+  const [studentTotal, setStudentTotal] = useState<number | null>(null);
 
+  // Load semesters once
   useEffect(() => {
     let cancelled = false;
-
     const loadSemesters = async () => {
       setSemesterStatus("loading");
       setSemesterError(null);
       try {
         const data = await fetchSemesters();
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         setSemesters(data);
-        setSelectedSemesterId((previous) => {
-          if (previous !== null && data.some((item) => item.id === previous)) {
-            return previous;
-          }
+        setSelectedSemesterId((prev) => {
+          if (prev !== null && data.some((s) => s.id === prev)) return prev;
           return data[0]?.id ?? null;
         });
         setSemesterStatus("success");
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         setSemesters([]);
         setSelectedSemesterId(null);
-        setSelectedClassId(null);
         setSemesterStatus("error");
         setSemesterError(
           error instanceof Error
@@ -72,66 +67,69 @@ export default function Home(): JSX.Element {
         );
       }
     };
-
     void loadSemesters();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // Load all classes once (không lọc theo học kỳ)
   useEffect(() => {
-    if (selectedSemesterId === null) {
-      setClasses([]);
-      setSelectedClassId(null);
-      setClassStatus("idle");
-      setClassError(null);
-      return;
-    }
-
     let cancelled = false;
-
-    const loadClasses = async () => {
+    const loadAllClasses = async () => {
       setClassStatus("loading");
       setClassError(null);
       try {
-        const data = await fetchClassesBySemester(selectedSemesterId);
-        if (cancelled) {
-          return;
-        }
+        const data = await fetchAllClasses();
+        if (cancelled) return;
         setClasses(data);
-        setSelectedClassId((previous) => {
-          if (previous !== null && data.some((item) => item.id === previous)) {
-            const cls = data.find((item) => item.id === previous);
-            setSelectedClassName(cls?.name ?? null);
-            return previous;
-          }
-          const firstClass = data[0];
-          setSelectedClassName(firstClass?.name ?? null);
-          return firstClass?.id ?? null;
-        });
+        if (data.length > 0) {
+          setSelectedClassId(data[0].id);
+          setSelectedClassName(data[0].name);
+        } else {
+          setSelectedClassId(null);
+          setSelectedClassName(null);
+        }
         setClassStatus("success");
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         setClasses([]);
         setSelectedClassId(null);
+        setSelectedClassName(null);
         setClassStatus("error");
         setClassError(
           error instanceof Error
             ? error.message
-            : "Không thể tải danh sách lớp."
+            : "Không thể tải danh sách lớp phụ trách."
         );
       }
     };
-
-    void loadClasses();
-
+    void loadAllClasses();
     return () => {
       cancelled = true;
     };
-  }, [selectedSemesterId]);
+  }, []);
+
+  // Load student total when selected class changes
+  useEffect(() => {
+    let cancelled = false;
+    const loadCount = async () => {
+      if (!selectedClassName) {
+        setStudentTotal(null);
+        return;
+      }
+      try {
+        const count = await fetchStudentCount(selectedClassName);
+        if (!cancelled) setStudentTotal(count);
+      } catch {
+        if (!cancelled) setStudentTotal(null);
+      }
+    };
+    void loadCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClassName, selectedSemesterId]);
 
   return (
     <>
@@ -148,9 +146,9 @@ export default function Home(): JSX.Element {
             id="filter-semester"
             className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
             value={selectedSemesterId ?? ""}
-            onChange={(event) => {
-              const { value } = event.target;
-              setSelectedSemesterId(value ? Number(value) : null);
+            onChange={(e) => {
+              const v = e.target.value;
+              setSelectedSemesterId(v ? Number(v) : null);
             }}
             disabled={semesterStatus === "loading" || semesters.length === 0}
           >
@@ -161,11 +159,11 @@ export default function Home(): JSX.Element {
               <option value="">{semesterError}</option>
             )}
             {semesterStatus !== "loading" && semesters.length === 0 && (
-              <option value="">Không có học kỳ khả dụng</option>
+              <option value="">Không có học kỳ</option>
             )}
-            {semesters.map((semester) => (
-              <option key={semester.id} value={semester.id}>
-                {semester.name}
+            {semesters.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
               </option>
             ))}
           </select>
@@ -185,11 +183,7 @@ export default function Home(): JSX.Element {
               const cls = classes.find((c) => c.id === classId);
               setSelectedClassName(cls?.name ?? null);
             }}
-            disabled={
-              selectedSemesterId === null ||
-              classStatus === "loading" ||
-              classes.length === 0
-            }
+            disabled={classStatus === "loading" || classes.length === 0}
           >
             {classStatus === "loading" && (
               <option value="">Đang tải lớp...</option>
@@ -198,7 +192,7 @@ export default function Home(): JSX.Element {
               <option value="">{classError}</option>
             )}
             {classStatus !== "loading" && classes.length === 0 && (
-              <option value="">Không có lớp phù hợp</option>
+              <option value="">Không có lớp phụ trách</option>
             )}
             {classes.map((classItem) => (
               <option key={classItem.id} value={classItem.id}>
@@ -209,12 +203,15 @@ export default function Home(): JSX.Element {
         </div>
       </div>
 
+      {/* Removed redundant Advisor Classes Section */}
+
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         <div className="col-span-12 space-y-6 xl:col-span-7">
           <EcommerceMetrics
             selectedSemesterId={selectedSemesterId}
             selectedClassId={selectedClassId}
             selectedClassName={selectedClassName}
+            studentTotalOverride={studentTotal ?? undefined}
           />
         </div>
 
@@ -239,7 +236,7 @@ export default function Home(): JSX.Element {
               <HighestLowestScoreChart />
             </div>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <ClassAverageComparisonChart />
               <GPA_Conduct />
             </div>

@@ -15,7 +15,7 @@ const adminNav: NavItem[] = [
 // MENU CHO GIẢNG VIÊN
 const teacherNav: NavItem[] = [
   {
-    name: "Thốg kê lớp cố vấn",
+    name: "Thống kê lớp cố vấn",
     icon: <GridIcon />,
     path: "/dashboard/ecommerce",
   },

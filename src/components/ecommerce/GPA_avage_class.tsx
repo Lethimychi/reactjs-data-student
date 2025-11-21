@@ -1,90 +1,125 @@
+import { useEffect, useState } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { useState } from "react";
+import { fetchClassAverageGPA } from "../../utils/ClassLecturerApi";
 
-import { MoreDotIcon } from "../../icons";
+interface GPAAverageClassProps {
+  selectedClassName?: string | null;
+  selectedSemesterDisplayName?: string | null; // Format: HK_x - yyyy-yyyy
+}
 
-export default function MonthlyTarget() {
-  const series = [75.55];
+export default function GPAAverageClass({
+  selectedClassName,
+  selectedSemesterDisplayName,
+}: GPAAverageClassProps) {
+  const [gpa, setGpa] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      if (!selectedClassName) {
+        setGpa(null);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const value = await fetchClassAverageGPA(
+          selectedClassName,
+          selectedSemesterDisplayName || undefined
+        );
+        if (!ignore) setGpa(value);
+      } catch (e) {
+        if (!ignore) setError("Không thể tải GPA");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [selectedClassName, selectedSemesterDisplayName]);
+
+  const normalizedPercent = gpa ? (gpa / 10) * 100 : 0;
+  const displayValue = gpa !== null ? gpa.toFixed(2) : "--";
+
   const options: ApexOptions = {
-    colors: ["#465FFF"],
+    colors: ["#3B82F6"],
     chart: {
       fontFamily: "Inter, sans-serif",
       type: "radialBar",
       height: 330,
-      sparkline: {
-        enabled: true,
-      },
+      sparkline: { enabled: true },
+      animations: { enabled: false },
     },
     plotOptions: {
       radialBar: {
         startAngle: -85,
         endAngle: 85,
-        hollow: {
-          size: "80%",
-        },
+        hollow: { size: "80%" },
         track: {
-          background: "#E4E7EC",
+          background: "#E2E8F0",
           strokeWidth: "100%",
-          margin: 5, // margin is in pixels
+          margin: 5,
         },
         dataLabels: {
-          name: {
-            show: false,
-          },
+          name: { show: false },
           value: {
-            fontSize: "36px",
-            fontWeight: "600",
+            fontSize: "34px",
+            fontWeight: 600,
             offsetY: -40,
-            color: "#1D2939",
-            formatter: function (val) {
-              return val + "%";
-            },
+            color: "#1E293B",
+            formatter: () => displayValue,
           },
         },
       },
     },
-    fill: {
-      type: "solid",
-      colors: ["#465FFF"],
-    },
-    stroke: {
-      lineCap: "round",
-    },
-    labels: ["Progress"],
+    fill: { type: "solid", colors: ["#3B82F6"] },
+    stroke: { lineCap: "round" },
+    labels: ["GPA"],
   };
-  const [isOpen, setIsOpen] = useState(false);
-
-  function toggleDropdown() {
-    setIsOpen(!isOpen);
-  }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className=" bg-white shadow-default rounded-2xl dark:bg-gray-900 p-1">
-        <div className="flex justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90 p-2">
-              GPA Trung bình lớp
-            </h3>
-          </div>
-          <div className="relative inline-block ">
-            <button className="dropdown-toggle" onClick={toggleDropdown}>
-              <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 size-6" />
-            </button>
-          </div>
+    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-5">
+      <h4 className="text-lg font-semibold text-slate-800 mb-1">
+        GPA Trung bình lớp
+      </h4>
+      {selectedClassName ? (
+        <p className="text-xs text-slate-500 mb-2">
+          Lớp: <span className="font-medium">{selectedClassName}</span>
+          {selectedSemesterDisplayName && (
+            <span>{" • " + selectedSemesterDisplayName}</span>
+          )}
+        </p>
+      ) : (
+        <p className="text-xs text-slate-500 mb-2">Chọn lớp để xem GPA</p>
+      )}
+      {loading ? (
+        <div className="h-[280px] flex items-center justify-center">
+          <span className="text-sm text-slate-500">Đang tải...</span>
         </div>
-        <div className="relative ">
-          <div className="max-h-[330px]" id="chartDarkStyle">
-            <Chart
-              options={options}
-              series={series}
-              type="radialBar"
-              height={280}
-            />
-          </div>
+      ) : error ? (
+        <div className="h-[280px] flex items-center justify-center">
+          <span className="text-sm text-red-600">{error}</span>
         </div>
-      </div>
+      ) : (
+        <div className="max-h-[330px]">
+          <Chart
+            options={options}
+            series={[normalizedPercent]}
+            type="radialBar"
+            height={280}
+          />
+          <p className="text-center text-xs text-slate-500 mt-2">
+            {gpa !== null
+              ? `GPA hiện tại: ${gpa.toFixed(2)} / 10`
+              : "Không có dữ liệu"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

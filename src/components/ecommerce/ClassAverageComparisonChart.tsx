@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
 } from "recharts";
 
 export default function ClassAverageComparisonChart({
@@ -23,24 +22,44 @@ export default function ClassAverageComparisonChart({
   ];
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-200">
-      <h4 className="font-semibold text-slate-700 text-lg mb-3">
-        Class Average Comparison (Combo)
+    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
+      <h4 className="text-lg font-semibold text-slate-800 mb-1">
+        Điểm trung bình theo môn học
       </h4>
+      <p className="text-sm text-slate-500 mb-6">
+        So sánh lớp vs tất cả các lớp
+      </p>
       <div className={className ?? "w-full h-64"}>
         <ResponsiveContainer>
           <ComposedChart data={data} margin={{ left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="course" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="student" barSize={16} fill="#3b82f6" />
+            <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="course"
+              stroke="#64748B"
+              style={{ fontSize: "12px" }}
+            />
+            <YAxis stroke="#64748B" style={{ fontSize: "12px" }} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#1E293B",
+                border: "none",
+                borderRadius: "6px",
+                color: "#fff",
+              }}
+            />
+            <Bar
+              dataKey="student"
+              barSize={16}
+              fill="#3B82F6"
+              radius={[6, 6, 0, 0]}
+            />
             <Line
               type="monotone"
               dataKey="average"
-              stroke="#10b981"
-              strokeWidth={2}
+              stroke="#60A5FA"
+              strokeWidth={3}
+              dot={{ fill: "#60A5FA", r: 3 }}
+              activeDot={{ r: 7 }}
             />
           </ComposedChart>
         </ResponsiveContainer>

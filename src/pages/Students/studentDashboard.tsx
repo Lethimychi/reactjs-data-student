@@ -16,14 +16,7 @@ import {
   Cell,
   ComposedChart,
 } from "recharts";
-import {
-  User,
-  GraduationCap,
-  TrendingUp,
-  Award,
-  BookOpen,
-  Target,
-} from "lucide-react";
+import { User, GraduationCap, TrendingUp, Award, Target } from "lucide-react";
 
 import getStudentInfo, {
   getStudentCoursesBySemester,
@@ -38,8 +31,9 @@ import getStudentInfo, {
   ClassAverageRecord,
   getStudentTrainingScores,
 } from "../../utils/student_api";
-import { StudentScoreChartHighestLowest } from "../student_chart/score/chart";
-import { RateGpaAndPoint } from "../student_chart/rate/chart";
+import { StudentScoreChartHighestLowest } from "../../components/student_chart/score/chart";
+import { RateGpaAndPoint } from "../../components/student_chart/rate/chart";
+import Semester from "../../components/students/Semester";
 
 // Types used in this file
 type SemesterGPA = {
@@ -1757,57 +1751,14 @@ const StudentDashboard: React.FC = () => {
               </div>
             </div>
             {/* Semester Selection */}
-            <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-blue-600" />
-                  Thông tin học kỳ
-                </h2>
-                <span className="text-sm text-slate-600 bg-blue-100 px-4 py-2 rounded-full font-semibold">
-                  Tổng: {semesters.length} học kỳ
-                </span>
-              </div>
-
-              <div className="mb-2 text-sm text-slate-500">
-                {coursesLoading
-                  ? "Đang tải danh sách học kỳ..."
-                  : coursesError
-                  ? `Lỗi tải học kỳ: ${coursesError}`
-                  : ""}
-              </div>
-
-              <select
-                className="w-full p-3 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(Number(e.target.value))}
-              >
-                {semesters.map(
-                  (sem: { id: number; name: string; year: string }) => (
-                    <option key={sem.id} value={sem.id}>
-                      {sem.name}
-                    </option>
-                  )
-                )}
-              </select>
-
-              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                <h3 className="font-semibold text-slate-700 mb-3">
-                  Môn học trong kỳ:
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {coursesPerSemester[selectedSemester]
-                    ?.filter((c) => c && c !== "-")
-                    .map((course: string, idx: number) => (
-                      <span
-                        key={idx}
-                        className="bg-white px-4 py-2 rounded-lg text-sm text-slate-700 shadow-sm border border-slate-200"
-                      >
-                        {course}
-                      </span>
-                    ))}
-                </div>
-              </div>
-            </div>
+            <Semester
+              semesters={semesters}
+              selectedSemester={selectedSemester}
+              onSemesterChange={setSelectedSemester}
+              coursesPerSemester={coursesPerSemester}
+              coursesLoading={coursesLoading}
+              coursesError={coursesError}
+            />
 
             {/* Detailed Scores Table */}
             <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">

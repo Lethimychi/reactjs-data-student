@@ -1,11 +1,4 @@
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-} from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 
 const data = [
   { name: "Giỏi", value: 12 },
@@ -14,7 +7,7 @@ const data = [
   { name: "Yếu", value: 6 },
 ];
 
-const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444"];
+const COLORS = ["#3B82F6", "#60A5FA", "#93C5FD", "#DBEAFE"];
 
 export default function GradeDistributionChart({
   className,
@@ -22,26 +15,34 @@ export default function GradeDistributionChart({
   className?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-md hover:shadow-lg transition-shadow duration-200">
-      <h4 className="font-semibold text-slate-700 text-lg mb-3">
-        Phân bố học lực sinh viên trong lớp
+    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
+      <h4 className="text-lg font-semibold text-slate-800 mb-1">
+        Phân bố học lực
       </h4>
-      <div className={className ?? "w-full h-64"}>
+      <p className="text-sm text-slate-500 mb-6">Analysis</p>
+      <div className={className ?? "w-full h-72"}>
         <ResponsiveContainer>
           <PieChart>
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius={40}
-              outerRadius={70}
+              innerRadius={50}
+              outerRadius={90}
+              paddingAngle={2}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={COLORS[i % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
-            <Legend />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "#d4dbe5ff",
+                border: "none",
+                borderRadius: "6px",
+                color: "#000000ff",
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
