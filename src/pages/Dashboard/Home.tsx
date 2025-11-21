@@ -34,13 +34,17 @@ export default function Home(): JSX.Element {
   const [selectedClassName, setSelectedClassName] = useState<string | null>(
     null
   );
+
+  // Mặc định: lớp & học kỳ khi khởi tạo
+  const DEFAULT_CLASS_NAME = "12DHTH11";
+  const DEFAULT_SEMESTER_NAME = "HK1 - 2024-2025";
   const [semesterStatus, setSemesterStatus] = useState<LoadingState>("idle");
   const [classStatus, setClassStatus] = useState<LoadingState>("idle");
   const [semesterError, setSemesterError] = useState<string | null>(null);
   const [classError, setClassError] = useState<string | null>(null);
   const [studentTotal, setStudentTotal] = useState<number | null>(null);
 
-  // Load semesters once
+  // Load semesters once (auto-select mặc định nếu tồn tại, fallback chọn đầu tiên)
   useEffect(() => {
     let cancelled = false;
     const loadSemesters = async () => {
@@ -50,10 +54,18 @@ export default function Home(): JSX.Element {
         const data = await fetchSemesters();
         if (cancelled) return;
         setSemesters(data);
-        setSelectedSemesterId((prev) => {
-          if (prev !== null && data.some((s) => s.id === prev)) return prev;
-          return data[0]?.id ?? null;
-        });
+        // Nếu đã có lớp mặc định hoặc lớp đã chọn thì chọn học kỳ mặc định nếu tìm thấy
+        if (data.length > 0) {
+          const defaultSem = data.find((s) => s.name === DEFAULT_SEMESTER_NAME);
+          if (defaultSem) {
+            setSelectedSemesterId(defaultSem.id);
+          } else {
+            // Fallback: chọn phần tử đầu tiên để không để trống
+            setSelectedSemesterId(data[0].id);
+          }
+        } else {
+          setSelectedSemesterId(null);
+        }
         setSemesterStatus("success");
       } catch (error) {
         if (cancelled) return;
@@ -73,7 +85,7 @@ export default function Home(): JSX.Element {
     };
   }, []);
 
-  // Load all classes once (không lọc theo học kỳ)
+  // Load all classes once (không lọc theo học kỳ) + chọn lớp mặc định nếu tồn tại
   useEffect(() => {
     let cancelled = false;
     const loadAllClasses = async () => {
@@ -84,8 +96,14 @@ export default function Home(): JSX.Element {
         if (cancelled) return;
         setClasses(data);
         if (data.length > 0) {
-          setSelectedClassId(data[0].id);
-          setSelectedClassName(data[0].name);
+          // Tìm lớp mặc định trước
+          const defaultClass = data.find(
+            (c) =>
+              c.name.trim().toLowerCase() === DEFAULT_CLASS_NAME.toLowerCase()
+          );
+          const chosen = defaultClass || data[0];
+          setSelectedClassId(chosen.id);
+          setSelectedClassName(chosen.name);
         } else {
           setSelectedClassId(null);
           setSelectedClassName(null);
@@ -139,36 +157,6 @@ export default function Home(): JSX.Element {
       />
       <div className="flex flex-wrap items-center gap-20 mb-6">
         <div className="flex items-center space-x-4">
-          <label className="text-sm text-gray-600" htmlFor="filter-semester">
-            Học kì
-          </label>
-          <select
-            id="filter-semester"
-            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            value={selectedSemesterId ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              setSelectedSemesterId(v ? Number(v) : null);
-            }}
-            disabled={semesterStatus === "loading" || semesters.length === 0}
-          >
-            {semesterStatus === "loading" && (
-              <option value="">Đang tải học kỳ...</option>
-            )}
-            {semesterStatus === "error" && semesterError && (
-              <option value="">{semesterError}</option>
-            )}
-            {semesterStatus !== "loading" && semesters.length === 0 && (
-              <option value="">Không có học kỳ</option>
-            )}
-            {semesters.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center space-x-4">
           <label htmlFor="filter-class" className="text-sm text-gray-600">
             Lớp
           </label>
@@ -201,6 +189,36 @@ export default function Home(): JSX.Element {
             ))}
           </select>
         </div>
+        <div className="flex items-center space-x-4">
+          <label className="text-sm text-gray-600" htmlFor="filter-semester">
+            Học kì
+          </label>
+          <select
+            id="filter-semester"
+            className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+            value={selectedSemesterId ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSelectedSemesterId(v ? Number(v) : null);
+            }}
+            disabled={semesterStatus === "loading" || semesters.length === 0}
+          >
+            {semesterStatus === "loading" && (
+              <option value="">Đang tải học kỳ...</option>
+            )}
+            {semesterStatus === "error" && semesterError && (
+              <option value="">{semesterError}</option>
+            )}
+            {semesterStatus !== "loading" && semesters.length === 0 && (
+              <option value="">Không có học kỳ</option>
+            )}
+            {semesters.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Removed redundant Advisor Classes Section */}
@@ -216,11 +234,22 @@ export default function Home(): JSX.Element {
         </div>
 
         <div className="col-span-12 xl:col-span-5 ">
-          <GPAAvageClass />
+          <GPAAvageClass
+            selectedClassName={selectedClassName ?? undefined}
+            selectedSemesterDisplayName={
+              semesters.find((s) => s.id === selectedSemesterId)?.name ??
+              undefined
+            }
+          />
         </div>
         <div className="col-span-12 xl:col-span-12 ">
-          {/* <MonthlySalesChart /> */}
-          <StatisticsChart />
+          <StatisticsChart
+            selectedClassName={selectedClassName ?? undefined}
+            selectedSemesterDisplayName={
+              semesters.find((s) => s.id === selectedSemesterId)?.name ??
+              undefined
+            }
+          />
         </div>
 
         <div className="col-span-12">

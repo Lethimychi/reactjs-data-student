@@ -57,10 +57,27 @@ const ADVISOR_ENDPOINT = "/api/giangvien/Giang-Vien-Co-Van-Lop-Hoc-Theo-Ky";
 const semesterKeyById = new Map<number, string>();
 const semesterIdByKey = new Map<string, number>();
 let cachedRecords: AdvisorRecord[] | null = null;
+// Roster cache per class (normalized class name -> set of student names)
+const rosterByClass = new Map<string, Set<string>>();
+
+const normalizeTerm = (raw: string): string => {
+  const t = raw.trim();
+  // Accept HK_3, HK3, hk 3 -> HK3
+  let m = /^HK[_\s]?(\d+)$/i.exec(t);
+  if (m) return `HK${m[1]}`;
+  // Accept "Học kỳ 3" / "Hoc ky 3" -> HK3
+  m = /^(Học kỳ|Hoc ky)\s*(\d+)$/i.exec(t);
+  if (m) return `HK${m[2]}`;
+  return t.replace(/HK_(\d+)/i, (_, d) => `HK${d}`); // final cleanup if pattern inside
+};
 
 const buildSemesterKey = (record: AdvisorRecord): string | null => {
   const year = (record["Ten Nam Hoc"] as string)?.trim() || "";
-  const term = (record["Ten Hoc Ky"] as string)?.trim() || "";
+  const termRaw =
+    (record["Ten Hoc Ky"] as string)?.trim() ||
+    (record["Ma Hoc Ky"] as string)?.trim() ||
+    "";
+  const term = termRaw ? normalizeTerm(termRaw) : "";
   return year || term ? `${year}|${term}` : null;
 };
 
@@ -128,8 +145,7 @@ export async function fetchSemesters(): Promise<Semester[]> {
     }
 
     const [year, term] = key.split("|");
-    const displayName =
-      [term, year].filter(Boolean).join(" - ") || `Học kỳ ${id}`;
+    const displayName = [term, year].filter(Boolean).join(" - ") || `HK${id}`;
 
     semesters.push({
       id,
@@ -237,11 +253,12 @@ export async function fetchClassPerformance(
     let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (semesterDisplayName) {
-      // Expect format "HK_x - yyyy-yyyy"
       const parts = semesterDisplayName.split(" - ");
       if (parts.length === 2) {
-        termFilter = parts[0].trim();
+        termFilter = normalizeTerm(parts[0].trim());
         yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(semesterDisplayName.trim());
       }
     }
 
@@ -254,8 +271,12 @@ export async function fetchClassPerformance(
         if (year !== yearFilter) return false;
       }
       if (termFilter) {
-        const term = (r["Ma Hoc Ky"] as string | undefined)?.trim();
-        if (term !== termFilter) return false;
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter)
+          return false;
       }
       return true;
     });
@@ -310,6 +331,9 @@ export async function fetchClassAverageGPA(
       if (parts.length === 2) {
         termFilter = parts[0].trim();
         yearFilter = parts[1].trim();
+      } else {
+        // fallback: maybe "Học kỳ X" only
+        termFilter = semesterDisplayName.trim();
       }
     }
 
@@ -321,8 +345,12 @@ export async function fetchClassAverageGPA(
         if (year !== yearFilter) return false;
       }
       if (termFilter) {
-        const term = (r["Ma Hoc Ky"] as string | undefined)?.trim();
-        if (term !== termFilter) return false;
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter)
+          return false;
       }
       return true;
     });
@@ -345,10 +373,103 @@ export async function fetchClassAverageGPA(
   }
 }
 
+// GPA từng sinh viên trong lớp tại học kỳ năm học
+export interface StudentGPARecord {
+  studentName: string;
+  gpa: number;
+}
+
+const STUDENT_GPA_ENDPOINT =
+  "/api/giangvien/GPA-tung-sinh-vien-trong-lop-tai-hoc-ki-nam-hoc";
+
+export async function fetchStudentGPAs(
+  className?: string,
+  semesterDisplayName?: string,
+  fallbackSemester: string = "HK1 - 2024-2025",
+  fallbackClass: string = "12DHTH11"
+): Promise<StudentGPARecord[]> {
+  try {
+    const data = await fetchWithAuth<unknown>(STUDENT_GPA_ENDPOINT);
+    const records: Array<Record<string, unknown>> = Array.isArray(data)
+      ? (data as Array<Record<string, unknown>>)
+      : [];
+
+    const effectiveClass = (className || fallbackClass).trim().toLowerCase();
+    const effectiveSemester = semesterDisplayName || fallbackSemester;
+
+    let yearFilter: string | null = null;
+    let termFilter: string | null = null;
+    if (effectiveSemester) {
+      const parts = effectiveSemester.split(" - ");
+      if (parts.length === 2) {
+        termFilter = normalizeTerm(parts[0].trim());
+        yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(effectiveSemester.trim());
+      }
+    }
+
+    // 1. Thu thập roster đầy đủ của lớp bất kể học kỳ (quét toàn bộ records)
+    const fullRosterSet = new Set<string>();
+    records.forEach((r) => {
+      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      if (!lop || lop !== effectiveClass) return;
+      const name = (r["Ho Ten"] as string | undefined)?.trim();
+      if (name) fullRosterSet.add(name);
+    });
+
+    // 2. Lọc GPA theo học kỳ được chọn
+    const semesterResult: StudentGPARecord[] = [];
+    records.forEach((r) => {
+      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      if (!lop || lop !== effectiveClass) return;
+      if (yearFilter) {
+        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
+        if (year && year !== yearFilter) return;
+      }
+      if (termFilter) {
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter) return;
+      }
+      const studentName = (r["Ho Ten"] as string | undefined)?.trim();
+      const gpaRaw = r["GPA_HocKy"];
+      const gpa = typeof gpaRaw === "number" ? gpaRaw : parseNumericId(gpaRaw);
+      if (studentName && gpa !== null)
+        semesterResult.push({ studentName, gpa });
+    });
+
+    // 3. Cập nhật roster cache (hợp nhất với roster mới quét)
+    const rosterKey = effectiveClass;
+    let rosterSet = rosterByClass.get(rosterKey);
+    if (!rosterSet) {
+      rosterSet = new Set<string>();
+      rosterByClass.set(rosterKey, rosterSet);
+    }
+    fullRosterSet.forEach((n) => rosterSet!.add(n));
+
+    // 4. Xây dựng danh sách cuối cùng: toàn bộ roster, GPA=0 nếu không có trong học kỳ
+    const rosterArray = Array.from(rosterSet).sort((a, b) =>
+      a.localeCompare(b, "vi")
+    );
+    const gpaMap = new Map(semesterResult.map((r) => [r.studentName, r.gpa]));
+    return rosterArray.map((name) => ({
+      studentName: name,
+      gpa: gpaMap.get(name) ?? 0,
+    }));
+  } catch (e) {
+    console.error("Không thể tải GPA từng sinh viên", e);
+    return [];
+  }
+}
+
 export function clearClassAdvisorCache(): void {
   cachedRecords = null;
   semesterKeyById.clear();
   semesterIdByKey.clear();
+  rosterByClass.clear();
 }
 
 export interface AdvisorClass {

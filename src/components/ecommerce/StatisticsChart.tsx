@@ -1,148 +1,195 @@
+import { useEffect, useState } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-//import ChartTab from "../common/ChartTab";
+import {
+  fetchStudentGPAs,
+  StudentGPARecord,
+} from "../../utils/ClassLecturerApi";
 
-export default function StatisticsChart() {
-  const options: ApexOptions = {
-    legend: {
-      show: false,
-      position: "top",
-      horizontalAlign: "left",
+interface StatisticsChartProps {
+  selectedClassName?: string | null;
+  selectedSemesterDisplayName?: string | null;
+}
+
+export default function StatisticsChart({
+  selectedClassName,
+  selectedSemesterDisplayName,
+}: StatisticsChartProps) {
+  const [data, setData] = useState<StudentGPARecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      if (!selectedClassName || !selectedSemesterDisplayName) {
+        setData([]);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const records = await fetchStudentGPAs(
+          selectedClassName,
+          selectedSemesterDisplayName
+        );
+        if (!ignore) setData(records);
+      } catch {
+        if (!ignore) setError("Không thể tải dữ liệu GPA sinh viên");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [selectedClassName, selectedSemesterDisplayName]);
+
+  const categories = data.map((d) => d.studentName);
+  const series = [
+    {
+      name: "GPA học kỳ",
+      data: data.map((d) => d.gpa),
     },
+  ];
+
+  const dynamicWidth = Math.max(600, categories.length * 90);
+  const rotateAngle = categories.length > 12 ? -45 : -25;
+
+  // Chuẩn bị dữ liệu hỗ trợ cho tooltip nâng cao
+  const ranked = [...data].sort((a, b) => b.gpa - a.gpa);
+  const rankMap = new Map(ranked.map((d, i) => [d.studentName, i + 1]));
+  const classify = (g: number) => {
+    if (g === 0)
+      return { label: "Chưa có dữ liệu", color: "bg-slate-200 text-slate-600" };
+    if (g >= 8.5)
+      return { label: "Xuất sắc", color: "bg-purple-100 text-purple-700" };
+    if (g >= 7.0)
+      return { label: "Giỏi", color: "bg-indigo-100 text-indigo-700" };
+    if (g >= 5.5) return { label: "Khá", color: "bg-blue-100 text-blue-700" };
+    if (g >= 5.0)
+      return { label: "Trung bình", color: "bg-amber-100 text-amber-700" };
+    return { label: "Yếu", color: "bg-red-100 text-red-700" };
+  };
+
+  const options: ApexOptions = {
+    legend: { show: false },
     colors: ["#3B82F6"],
     chart: {
       fontFamily: "Inter, sans-serif",
       height: 310,
       type: "area",
-      toolbar: {
-        show: false,
-      },
+      toolbar: { show: false },
+      animations: { enabled: false },
     },
-    stroke: {
-      curve: "smooth",
-      width: 3,
-    },
+    stroke: { curve: "smooth", width: 3 },
     fill: {
       type: "gradient",
       gradient: {
-        opacityFrom: 0.4,
+        opacityFrom: 0.35,
         opacityTo: 0,
         colorStops: [
-          {
-            offset: 0,
-            color: "#3B82F6",
-            opacity: 0.4,
-          },
-          {
-            offset: 100,
-            color: "#3B82F6",
-            opacity: 0,
-          },
+          { offset: 0, color: "#3B82F6", opacity: 0.35 },
+          { offset: 100, color: "#3B82F6", opacity: 0 },
         ],
       },
     },
     markers: {
-      size: 0,
+      size: 4,
       strokeColors: "#fff",
       strokeWidth: 2,
-      hover: {
-        size: 6,
-      },
+      hover: { size: 7 },
     },
     grid: {
       borderColor: "#E2E8F0",
       strokeDashArray: 3,
-      xaxis: {
-        lines: {
-          show: false,
-        },
-      },
-      yaxis: {
-        lines: {
-          show: true,
-        },
-      },
     },
-    dataLabels: {
-      enabled: false,
-    },
-    tooltip: {
-      enabled: true,
-      theme: "dark",
-      x: {
-        format: "dd MMM yyyy",
-      },
-    },
+    dataLabels: { enabled: false },
     xaxis: {
       type: "category",
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
-      },
-      tooltip: {
-        enabled: false,
-      },
+      categories,
       labels: {
-        style: {
-          fontSize: "12px",
-          colors: "#64748B",
-        },
+        rotate: rotateAngle,
+        trim: true,
+        style: { fontSize: "12px", colors: "#64748B" },
       },
+      axisBorder: { show: false },
+      axisTicks: { show: false },
+      tooltip: { enabled: false },
     },
     yaxis: {
+      min: 0,
+      max: 10,
+      tickAmount: 6,
+      forceNiceScale: true,
       labels: {
-        style: {
-          fontSize: "12px",
-          colors: "#64748B",
-        },
+        style: { fontSize: "12px", colors: "#64748B" },
+        formatter: (val: number) => Math.round(val).toString(),
       },
-      title: {
-        text: "",
-        style: {
-          fontSize: "0px",
-        },
+    },
+    tooltip: {
+      custom: ({ series, seriesIndex, dataPointIndex }) => {
+        const student = categories[dataPointIndex];
+        const raw = series[seriesIndex][dataPointIndex];
+        const gpa = typeof raw === "number" ? raw : Number(raw);
+        const gpaStr = gpa.toFixed(2);
+        const rank = rankMap.get(student);
+        const total = data.length;
+        const { label, color } = classify(gpa);
+        return (
+          `<div class="rounded-lg shadow-lg bg-slate-800/95 text-xs text-slate-100 min-w-[190px] px-3 py-2">` +
+          `<div class="font-semibold mb-1 truncate" title="${student}">${student}</div>` +
+          `<div class="flex items-center justify-between mb-2"><div class="text-[11px]">GPA: <span class="font-bold text-indigo-400">${gpaStr}</span></div><div class="inline-flex items-center px-2 py-1 rounded-md ${color} font-medium text-[10px]">${label}</div></div>` +
+          `<div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-wide text-slate-400">Rank</span><span class="text-[11px] font-medium">#${rank}/${total}</span></div>` +
+          `</div>`
+        );
       },
     },
   };
 
-  const series = [
-    {
-      name: "GPA",
-      data: [7.2, 7.5, 7.1, 7.0, 7.3, 7.2, 7.4, 7.8, 8.0, 7.9, 8.2, 8.1],
-    },
-  ];
   return (
     <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="w-full">
-          <h3 className="text-lg font-semibold text-slate-800">
-            GPA của sinh viên trong lớp
-          </h3>
-          <p className="mt-1 text-slate-500 text-sm">Biểu đồ GPA theo tháng</p>
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-800 m-0">
+              GPA của sinh viên trong lớp
+            </h3>
+            <p className="mt-1 text-slate-500 text-sm">
+              {selectedClassName && selectedSemesterDisplayName
+                ? `${selectedClassName} • ${selectedSemesterDisplayName}`
+                : "Mặc định: 12DHTH11 • HK1 - 2024-2025"}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-full overflow-x-auto custom-scrollbar">
-        <div className="min-w-[1000px] xl:min-w-full">
-          <Chart options={options} series={series} type="area" height={310} />
+      {!selectedClassName || !selectedSemesterDisplayName ? (
+        <div className="h-[300px] flex items-center justify-center">
+          <span className="text-sm text-slate-500">
+            Chọn lớp và học kỳ để xem GPA sinh viên
+          </span>
         </div>
-      </div>
+      ) : loading ? (
+        <div className="h-[300px] flex items-center justify-center">
+          <span className="text-sm text-slate-500">Đang tải...</span>
+        </div>
+      ) : error ? (
+        <div className="h-[300px] flex items-center justify-center">
+          <span className="text-sm text-red-600">{error}</span>
+        </div>
+      ) : data.length === 0 ? (
+        <div className="h-[300px] flex items-center justify-center">
+          <span className="text-sm text-slate-500">Không có dữ liệu</span>
+        </div>
+      ) : (
+        <div className="max-w-full overflow-x-auto custom-scrollbar">
+          <div style={{ minWidth: dynamicWidth }}>
+            <Chart options={options} series={series} type="area" height={310} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

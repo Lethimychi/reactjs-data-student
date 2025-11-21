@@ -23,8 +23,8 @@ export default function EcommerceMetrics({
     s && s.length > max ? s.slice(0, max) + "…" : s;
   const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
-  const [passRate, setPassRate] = useState<number | null>(null);
-  const [debtCount, setDebtCount] = useState<number | null>(null);
+  const [passRate, setPassRate] = useState<number>(0); // 0..1
+  const [debtCount, setDebtCount] = useState<number>(0);
 
   void shorten;
 
@@ -64,22 +64,26 @@ export default function EcommerceMetrics({
   useEffect(() => {
     let cancelled = false;
     const loadPerf = async () => {
-      if (!selectedClassName) {
-        setPassRate(null);
-        setDebtCount(null);
+      if (!selectedClassName || !selectedSemesterId) {
+        // Chưa chọn học kỳ => giữ 0 và chờ người dùng
+        setPassRate(0);
+        setDebtCount(0);
         return;
       }
       try {
-        // We pass semester display string if available by finding label in parent later; for now just class
-        const perf = await fetchClassPerformance(selectedClassName);
+        // Chỉ load khi có đủ lớp & học kỳ
+        const perf = await fetchClassPerformance(
+          selectedClassName,
+          undefined // sẽ truyền displayName nếu cần trong tương lai
+        );
         if (!cancelled) {
-          setPassRate(perf.passRate);
-          setDebtCount(perf.debtCount);
+          setPassRate(perf.passRate ?? 0);
+          setDebtCount(perf.debtCount ?? 0);
         }
       } catch {
         if (!cancelled) {
-          setPassRate(null);
-          setDebtCount(null);
+          setPassRate(0);
+          setDebtCount(0);
         }
       }
     };
@@ -90,7 +94,7 @@ export default function EcommerceMetrics({
   }, [selectedSemesterId, selectedClassName]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 h-full flex flex-col">
       {/* KPI Cards Grid - Equal Heights */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 items-stretch">
         {/* Card 1: Students */}
@@ -119,13 +123,11 @@ export default function EcommerceMetrics({
               Tỷ lệ qua môn
             </span>
             <h4 className="mt-3 text-2xl font-bold text-slate-800">
-              {passRate === null ? "--" : `${(passRate * 100).toFixed(0)}%`}
+              {(passRate * 100).toFixed(0)}%
             </h4>
           </div>
-          <Badge
-            color={passRate !== null && passRate >= 0.5 ? "success" : "error"}
-          >
-            {passRate === null ? "N/A" : `${(passRate * 100).toFixed(1)}%`}
+          <Badge color={passRate >= 0.5 ? "success" : "error"}>
+            {(passRate * 100).toFixed(1)}%
           </Badge>
         </div>
 
@@ -139,13 +141,11 @@ export default function EcommerceMetrics({
               Sinh viên nợ môn
             </span>
             <h4 className="mt-3 text-2xl font-bold text-slate-800">
-              {debtCount === null ? "--" : debtCount.toString()}
+              {debtCount.toString()}
             </h4>
           </div>
-          <Badge
-            color={debtCount !== null && debtCount === 0 ? "success" : "error"}
-          >
-            {debtCount === null ? "N/A" : `${debtCount} SV`}
+          <Badge color={debtCount === 0 ? "success" : "error"}>
+            {`${debtCount} SV`}
           </Badge>
         </div>
       </div>

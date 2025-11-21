@@ -13,30 +13,29 @@ export default function GPAAverageClass({
   selectedSemesterDisplayName,
 }: GPAAverageClassProps) {
   const [gpa, setGpa] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
+
     const load = async () => {
-      if (!selectedClassName) {
+      if (!selectedClassName || !selectedSemesterDisplayName) {
         setGpa(null);
         return;
       }
-      setLoading(true);
+
       setError(null);
       try {
         const value = await fetchClassAverageGPA(
           selectedClassName,
-          selectedSemesterDisplayName || undefined
+          selectedSemesterDisplayName
         );
         if (!ignore) setGpa(value);
-      } catch (e) {
+      } catch {
         if (!ignore) setError("Không thể tải GPA");
-      } finally {
-        if (!ignore) setLoading(false);
       }
     };
+
     load();
     return () => {
       ignore = true;
@@ -53,7 +52,6 @@ export default function GPAAverageClass({
       type: "radialBar",
       height: 330,
       sparkline: { enabled: true },
-      animations: { enabled: false },
     },
     plotOptions: {
       radialBar: {
@@ -83,40 +81,35 @@ export default function GPAAverageClass({
   };
 
   return (
-    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-5">
-      <h4 className="text-lg font-semibold text-slate-800 mb-1">
-        GPA Trung bình lớp
-      </h4>
-      {selectedClassName ? (
-        <p className="text-xs text-slate-500 mb-2">
-          Lớp: <span className="font-medium">{selectedClassName}</span>
-          {selectedSemesterDisplayName && (
-            <span>{" • " + selectedSemesterDisplayName}</span>
-          )}
-        </p>
-      ) : (
-        <p className="text-xs text-slate-500 mb-2">Chọn lớp để xem GPA</p>
-      )}
-      {loading ? (
-        <div className="h-[280px] flex items-center justify-center">
-          <span className="text-sm text-slate-500">Đang tải...</span>
-        </div>
-      ) : error ? (
-        <div className="h-[280px] flex items-center justify-center">
+    <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-4 h-full flex flex-col">
+      <div className="flex flex-wrap items-center gap-3 mb-1">
+        <h4 className="text-lg font-semibold text-slate-800 m-0">
+          GPA Trung bình lớp
+        </h4>
+        {selectedClassName && (
+          <span className="text-xs text-slate-500">
+            Lớp: <span className="font-medium">{selectedClassName}</span>
+            {selectedSemesterDisplayName && (
+              <span>{" • " + selectedSemesterDisplayName}</span>
+            )}
+          </span>
+        )}
+      </div>
+
+      {error ? (
+        <div className="flex-1 flex items-center justify-center">
           <span className="text-sm text-red-600">{error}</span>
         </div>
       ) : (
-        <div className="max-h-[330px]">
+        <div className="flex-1 flex flex-col items-center justify-center">
           <Chart
             options={options}
             series={[normalizedPercent]}
             type="radialBar"
-            height={280}
+            height={240}
           />
           <p className="text-center text-xs text-slate-500 mt-2">
-            {gpa !== null
-              ? `GPA hiện tại: ${gpa.toFixed(2)} / 10`
-              : "Không có dữ liệu"}
+            {gpa !== null ? `GPA hiện tại: ${gpa.toFixed(2)} / 10` : "0/10"}
           </p>
         </div>
       )}
