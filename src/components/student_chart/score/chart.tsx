@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { loadHighestLowestData } from "../../../utils/score/handler_highes_lowest";
+import { COLORS } from "../../../utils/config/colors";
 
 // -------------------------
 // TYPE CHUẨN – KHÔNG ANY
@@ -168,11 +169,11 @@ export function StudentScoreChartHighestLowest() {
                 dataKey="highestScore"
                 name="Cao nhất"
                 barSize={20}
-                fill="#22C55E"
+                fill={COLORS.RATE.GOOD}
                 radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`hi-${idx}`} fill="#22C55E" />
+                  <Cell key={`hi-${idx}`} fill={COLORS.RATE.GOOD} />
                 ))}
               </Bar>
 
@@ -180,11 +181,11 @@ export function StudentScoreChartHighestLowest() {
                 dataKey="lowestScore"
                 name="Thấp nhất"
                 barSize={20}
-                fill="#EF4444"
+                fill={COLORS.RATE.POOR}
                 radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`low-${idx}`} fill="#EF4444" />
+                  <Cell key={`low-${idx}`} fill={COLORS.RATE.POOR} />
                 ))}
               </Bar>
             </BarChart>

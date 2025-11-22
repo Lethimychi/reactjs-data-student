@@ -101,10 +101,10 @@ const AppSidebar: React.FC = () => {
           {item.subItems ? (
             <button
               onClick={() => toggleSubmenu(index, type)}
-              className={`menu-item group ${
+              className={`menu-item transition-all duration-300 ease-in-out group ${
                 openSubmenu?.index === index && openSubmenu?.type === type
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
+                  ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                  : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20"
               }`}
             >
               <span className="menu-item-icon-size">{item.icon}</span>
@@ -124,10 +124,10 @@ const AppSidebar: React.FC = () => {
             item.path && (
               <Link
                 to={item.path}
-                className={`menu-item group ${
+                className={`menu-item transition-all duration-300 ease-in-out group ${
                   isActive(item.path)
-                    ? "menu-item-active"
-                    : "menu-item-inactive"
+                    ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                    : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20"
                 }`}
               >
                 <span className="menu-item-icon-size">{item.icon}</span>
@@ -157,10 +157,10 @@ const AppSidebar: React.FC = () => {
                   <li key={sub.name}>
                     <Link
                       to={sub.path}
-                      className={`menu-dropdown-item ${
+                      className={`menu-dropdown-item transition-all duration-200 ease-in-out ${
                         isActive(sub.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
+                          ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20"
                       }`}
                     >
                       {sub.name}
@@ -177,8 +177,8 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 lg:mt-0 top-0 left-0 px-5 bg-white dark:bg-gray-900
-        border-r dark:border-gray-800 h-screen transition-all duration-300 z-50
+      className={`fixed mt-16 lg:mt-0 top-0 left-0 px-5 bg-white dark:bg-slate-950
+        border-r border-blue-100/50 dark:border-blue-900/30 h-screen transition-all duration-300 z-50
         ${
           isExpanded || isMobileOpen
             ? "w-[290px]"
