@@ -61,16 +61,18 @@ export default function StatisticsChart({
   const ranked = [...data].sort((a, b) => b.gpa - a.gpa);
   const rankMap = new Map(ranked.map((d, i) => [d.studentName, i + 1]));
   const classify = (g: number) => {
-    if (g === 0)
-      return { label: "Chưa có dữ liệu", color: "bg-slate-200 text-slate-600" };
-    if (g >= 8.5)
-      return { label: "Xuất sắc", color: "bg-purple-100 text-purple-700" };
-    if (g >= 7.0)
-      return { label: "Giỏi", color: "bg-indigo-100 text-indigo-700" };
-    if (g >= 5.5) return { label: "Khá", color: "bg-blue-100 text-blue-700" };
-    if (g >= 5.0)
-      return { label: "Trung bình", color: "bg-amber-100 text-amber-700" };
-    return { label: "Yếu", color: "bg-red-100 text-red-700" };
+    if (g >= 9.0)
+      return { label: "Xuất sắc", color: "bg-purple-700 text-white" };
+    if (g >= 8.0 && g < 9.0)
+      return { label: "Giỏi", color: "bg-indigo-700 text-white" };
+    if (g >= 7.0 && g < 8.0)
+      return { label: "Khá", color: "bg-blue-100 text-blue-700" };
+
+    if (g >= 5.0 && g < 7.0)
+      return { label: "Trung bình", color: "bg-amber-600 text-white" };
+    if (g >= 4.0 && g < 5.0)
+      return { label: "Yếu", color: "bg-red-600 text-white" };
+    return { label: "Kém", color: "bg-red-600 text-white" };
   };
 
   const options: ApexOptions = {
@@ -140,7 +142,7 @@ export default function StatisticsChart({
         return (
           `<div class="rounded-lg shadow-lg bg-slate-800/95 text-xs text-slate-100 min-w-[190px] px-3 py-2">` +
           `<div class="font-semibold mb-1 truncate" title="${student}">${student}</div>` +
-          `<div class="flex items-center justify-between mb-2"><div class="text-[11px]">GPA: <span class="font-bold text-indigo-400">${gpaStr}</span></div><div class="inline-flex items-center px-2 py-1 rounded-md ${color} font-medium text-[10px]">${label}</div></div>` +
+          `<div class="flex items-center justify-between mb-2"><div class="text-[11px]">GPA: <span class="font-bold text-indigo-400">${gpaStr}</span></div><div class="inline-flex items-center px-2 py-0.5 rounded-full ${color} font-semibold text-[10px]">${label}</div></div>` +
           `<div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-wide text-slate-400">Rank</span><span class="text-[11px] font-medium">#${rank}/${total}</span></div>` +
           `</div>`
         );

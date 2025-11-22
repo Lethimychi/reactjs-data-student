@@ -315,6 +315,19 @@ body {
   @apply gap-1 !rounded-lg !border-gray-200 p-3 !shadow-theme-sm dark:!border-gray-800 dark:!bg-gray-900;
 }
 
+/* Make ApexCharts outer tooltip wrapper transparent so custom tooltip
+   content (dark card) is shown without a white box behind it. */
+.apexcharts-tooltip,
+.apexcharts-tooltip.apexcharts-theme-light {
+  background: rgb(15, 6, 49) !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.apexcharts-tooltip * {
+  background: transparent !important;
+}
+
 .apexcharts-tooltip-marker {
   margin-right: 6px;
   height: 6px;
