@@ -34,6 +34,7 @@ import getStudentInfo, {
 import { StudentScoreChartHighestLowest } from "../../components/student_chart/score/chart";
 import { RateGpaAndPoint } from "../../components/student_chart/rate/chart";
 import Semester from "../../components/students/Semester";
+import StudentClassificationChart from "../../components/student_chart/classification/chart";
 
 // Types used in this file
 type SemesterGPA = {
@@ -2024,119 +2025,7 @@ const StudentDashboard: React.FC = () => {
               </ResponsiveContainer>
             </div>
             {/* Subject Grade Distribution */}
-            <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-indigo-600" />
-                  Phân loại môn học
-                </h2>
-                <select
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  value={selectedGradeFilter}
-                  onChange={(e) => setSelectedGradeFilter(e.target.value)}
-                >
-                  <option value="all">Tất cả</option>
-                  <option value="Giỏi">Giỏi</option>
-                  <option value="Khá">Khá</option>
-                  <option value="Trung bình">Trung bình</option>
-                  <option value="Yếu">Yếu</option>
-                </select>
-              </div>
-              <p className="text-sm text-slate-600 mb-4">
-                Tỷ lệ môn học đạt loại Giỏi, Khá, Trung bình, Yếu
-              </p>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="h-80 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={gradeDistributionData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                        onClick={(data) => {
-                          console.log("Clicked grade category:", data.name);
-                          setSelectedGradeFilter(data.name);
-                        }}
-                      >
-                        {gradeDistributionData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={GRADE_COLORS[entry.name]}
-                            style={{ cursor: "pointer" }}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#fff",
-                          border: "2px solid #e2e8f0",
-                          borderRadius: "12px",
-                        }}
-                        formatter={(
-                          value: number,
-                          _name: string,
-                          props: {
-                            payload?: { percentage?: string; name?: string };
-                          }
-                        ) => [
-                          `${value} môn (${props.payload?.percentage ?? "0"}%)`,
-                          props.payload?.name ?? "",
-                        ]}
-                      />
-                      <Legend
-                        verticalAlign="bottom"
-                        iconType="circle"
-                        formatter={(value) => (
-                          <span style={{ color: "#64748b" }}>{value}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="grid grid-cols-2 gap-4 ">
-                  {gradeDistributionData.map((item) => (
-                    <div
-                      key={item.name}
-                      className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                        selectedGradeFilter === item.name ||
-                        selectedGradeFilter === "all"
-                          ? "scale-105 shadow-lg"
-                          : "opacity-70"
-                      }`}
-                      style={{
-                        borderColor: GRADE_COLORS[item.name],
-                        backgroundColor: `${GRADE_COLORS[item.name]}15`,
-                      }}
-                      onClick={() => setSelectedGradeFilter(item.name)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "scale(1.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1)";
-                      }}
-                    >
-                      <p
-                        className="font-semibold text-sm mb-1"
-                        style={{ color: GRADE_COLORS[item.name] }}
-                      >
-                        {item.name}
-                      </p>
-                      <p className="text-2xl font-bold text-slate-800">
-                        {item.value}
-                      </p>
-                      <p className="text-xs text-slate-600 mt-1">môn học</p>
-                      <p className="text-xs font-semibold mt-2 text-slate-700">
-                        {item.percentage}%
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <StudentClassificationChart semester={selectedSemester} />
             <div className="flex gap-6">
               {/* Training Score */}
               <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 w-full">
