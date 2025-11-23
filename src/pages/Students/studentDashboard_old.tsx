@@ -50,6 +50,8 @@ import {
   buildNormalizedMap,
   classifyScore,
 } from "../../utils/dataCalculators";
+import { GraduationCap, TrendingUp, User } from "lucide-react";
+import { CartesianGrid, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Types used in this file
 type SemesterGPA = {

@@ -37,7 +37,7 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
   });
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-lg shadow-slate-200/50 w-full">
+    <div className="card-modern p-6 w-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-green-50 rounded-xl">
@@ -47,11 +47,11 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
             Tỷ lệ Đậu/Rớt theo tín chỉ
           </h2>
         </div>
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 px-6 py-4 rounded-xl border border-green-100">
-          <div className="text-sm font-medium text-green-700 mb-1">
+        <div className="bg-gradient-to-br  from-blue-500  to-emerald-50 px-6 py-4 rounded-xl border border-green-100">
+          <div className="text-sm font-medium text-white mb-1">
             Tỷ lệ qua môn toàn khóa
           </div>
-          <div className="text-3xl font-bold text-green-600">
+          <div className="text-3xl font-bold text-white">
             {overallPassRate}%
           </div>
         </div>
@@ -65,11 +65,7 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
           barGap={0}
           layout="horizontal"
         >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="#e2e8f0"
-            opacity={0.6}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
           <XAxis
             dataKey="semester"
             stroke="#64748b"
@@ -92,7 +88,8 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
               props: { payload?: { totalCredits?: number } }
             ) => {
               const total = props.payload?.totalCredits ?? 0;
-              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0";
+              const percentage =
+                total > 0 ? ((value / total) * 100).toFixed(1) : "0";
               if (name === "Đậu") {
                 return [`${value} tín chỉ (${percentage}%)`, "Đậu"];
               }
@@ -103,14 +100,14 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
           <Legend wrapperStyle={{ paddingTop: "16px" }} iconType="circle" />
           <Bar
             dataKey="passedCredits"
-            fill="#22C55E"
+            fill="#4ade80"
             barSize={40}
             name="Đậu"
             radius={[6, 6, 0, 0]}
           />
           <Bar
             dataKey="failedCredits"
-            fill="#EF4444"
+            fill="#f87171"
             name="Rớt"
             barSize={40}
             radius={[6, 6, 0, 0]}

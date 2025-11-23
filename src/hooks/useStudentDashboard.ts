@@ -4,35 +4,12 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import getStudentInfo, {
-  getStudentCoursesBySemester,
-  getStudentGpaBySemester,
-  getStudentOverallGpa,
-  CourseApiRecord,
-  getStudentDetailedCourses,
-  DetailedCourseApiRecord,
-  getStudentPassRateBySemester,
-  PassRateApiRecord,
-  getStudentClassAverageComparison,
-  ClassAverageRecord,
-  getStudentTrainingScores,
-} from "./student_api";
+import { Course, createEmptyStudent, makeSemesterKey, normalizeStudent, SemesterGPA, Student, TrainingScore } from "../utils/studentNormalizers";
+import getStudentInfo, { ClassAverageRecord, CourseApiRecord, getStudentClassAverageComparison, getStudentCoursesBySemester, getStudentDetailedCourses, getStudentGpaBySemester, getStudentOverallGpa, getStudentPassRateBySemester, getStudentTrainingScores, PassRateApiRecord } from "../utils/student_api";
+import { getNumericField, getStringField, normalizeKeyForMatching } from "../utils/dataCalculators";
 
-import {
-  Student,
-  SemesterGPA,
-  Course,
-  TrainingScore,
-  createEmptyStudent,
-  normalizeStudent,
-  makeSemesterKey,
-} from "../../utils/studentNormalizers";
 
-import {
-  getNumericField,
-  getStringField,
-  normalizeKeyForMatching,
-} from "../../utils/dataCalculators";
+
 
 // ========== TYPE DEFINITIONS ==========
 
@@ -56,12 +33,15 @@ interface PassRateMap {
   };
 }
 
+// ========== CONSTANTS ==========
+const EMPTY_STUDENT = createEmptyStudent();
+
 // ========== HOOK 1: FETCH STUDENT INFO ==========
 /**
  * Fetches and normalizes student information from API
+ * Runs ONCE on component mount (empty dependency array)
  */
 export const useStudentInfoFetch = () => {
-  const EMPTY_STUDENT = createEmptyStudent();
   const [currentStudent, setCurrentStudent] = useState<Student>(EMPTY_STUDENT);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -77,22 +57,8 @@ export const useStudentInfoFetch = () => {
 
         if (!isMounted) return;
 
-        if (!data) {
-          console.warn("API trả về null/undefined");
-          setApiError(null);
-          setCurrentStudent(EMPTY_STUDENT);
-          return;
-        }
-
         if (!Array.isArray(data)) {
           setCurrentStudent(normalizeStudent(data));
-          return;
-        }
-
-        if (data.length === 0) {
-          console.warn("API trả về mảng rỗng");
-          setApiError(null);
-          setCurrentStudent(EMPTY_STUDENT);
           return;
         }
 
@@ -114,7 +80,7 @@ export const useStudentInfoFetch = () => {
     return () => {
       isMounted = false;
     };
-  }, [EMPTY_STUDENT]);
+  }, []);
 
   return { currentStudent, loading, apiError, setCurrentStudent };
 };

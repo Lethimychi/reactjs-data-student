@@ -168,11 +168,11 @@ export function StudentScoreChartHighestLowest() {
                 dataKey="highestScore"
                 name="Cao nhất"
                 barSize={20}
-                fill="#22C55E"
+                fill="#4ade80"
                 radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`hi-${idx}`} fill="#22C55E" />
+                  <Cell key={`hi-${idx}`} fill="#4ade80" />
                 ))}
               </Bar>
 
@@ -180,11 +180,11 @@ export function StudentScoreChartHighestLowest() {
                 dataKey="lowestScore"
                 name="Thấp nhất"
                 barSize={20}
-                fill="#EF4444"
+                fill="#f87171"
                 radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`low-${idx}`} fill="#EF4444" />
+                  <Cell key={`low-${idx}`} fill="#f87171" />
                 ))}
               </Bar>
             </BarChart>

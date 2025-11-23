@@ -13,8 +13,6 @@ import { StudentScoreChartHighestLowest } from "../../components/student_chart/s
 import { RateGpaAndPoint } from "../../components/student_chart/rate/chart";
 import Semester from "../../components/students/Semester";
 import StudentClassificationChart from "../../components/student_chart/classification/chart";
-import { StudentHeader } from "../../components/student_dashboard/StudentHeader";
-import { TabNavigation } from "../../components/student_dashboard/TabNavigation";
 import { GpaTrendChart } from "../../components/student_dashboard/GpaTrendChart";
 import { DetailedScoresTable } from "../../components/student_dashboard/DetailedScoresTable";
 import { PassRateChart } from "../../components/student_dashboard/PassRateChart";
@@ -23,15 +21,13 @@ import { TrainingScoreChart } from "../../components/student_dashboard/TrainingS
 import { PredictionPanel } from "../../components/student_dashboard/PredictionPanel";
 
 // Utilities
-import {
-  getUserNameFromLocal,
-  Course,
-} from "../../utils/studentNormalizers";
+import { getUserNameFromLocal, Course } from "../../utils/studentNormalizers";
 import {
   getGradeRank,
   normalizeKeyForMatching,
   classifyScore,
 } from "../../utils/dataCalculators";
+import { StudentHeader } from "../../components/student_dashboard";
 
 const StudentDashboard: React.FC = () => {
   // ========== UI STATE ==========
@@ -83,8 +79,6 @@ const StudentDashboard: React.FC = () => {
       []
     ).find((s) => {
       try {
-
-        
         const a = normalizeForMatch(s.course || "");
         return a === norm;
       } catch {
@@ -112,11 +106,13 @@ const StudentDashboard: React.FC = () => {
   const semesters: { id: number; name: string; year: string }[] =
     apiSemesters.length > 0
       ? apiSemesters
-      : (currentStudent?.gpaData ?? []).map((g: { semester: string; year: string }, idx: number) => ({
-          id: idx + 1,
-          name: `${g.semester} ${g.year}`,
-          year: g.year,
-        }));
+      : (currentStudent?.gpaData ?? []).map(
+          (g: { semester: string; year: string }, idx: number) => ({
+            id: idx + 1,
+            name: `${g.semester} ${g.year}`,
+            year: g.year,
+          })
+        );
 
   // Courses per semester
   const coursesPerSemester: Record<number, Course[]> = (() => {
@@ -125,7 +121,9 @@ const StudentDashboard: React.FC = () => {
       map[Number(k)] = v as Course[];
     }
     if (Object.keys(map).length === 0) {
-      for (const [k, v] of Object.entries(currentStudent?.detailedScores ?? {})) {
+      for (const [k, v] of Object.entries(
+        currentStudent?.detailedScores ?? {}
+      )) {
         map[Number(k)] = v as Course[];
       }
     }
@@ -147,13 +145,11 @@ const StudentDashboard: React.FC = () => {
           (s: number, c: Course) => s + (Number(c?.credits) || 0),
           0
         );
-        const passedCredits = courses.reduce(
-          (s: number, c: Course) => {
-            const scoreValue = typeof c.score === "number" ? c.score : Number(c.score);
-            return s + (Number(c?.credits) || 0) * (scoreValue >= 5 ? 1 : 0);
-          },
-          0
-        );
+        const passedCredits = courses.reduce((s: number, c: Course) => {
+          const scoreValue =
+            typeof c.score === "number" ? c.score : Number(c.score);
+          return s + (Number(c?.credits) || 0) * (scoreValue >= 5 ? 1 : 0);
+        }, 0);
 
         totalPassed += passedCredits;
         totalAll += totalCredits;
@@ -185,101 +181,124 @@ const StudentDashboard: React.FC = () => {
   // ========== RENDER ==========
   return (
     <div
-      className="min-h-screen bg-[#F5F7FA] p-6"
+      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50"
       style={{ fontFamily: "Inter, Manrope, Outfit, sans-serif" }}
     >
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Tabs */}
-        <TabNavigation
-          selectedTab={selectedTab}
-          onTabChange={setSelectedTab}
-        />
+      {/* Header gradient bar */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-600" />
 
-        {/* API Error */}
-        {apiError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg">
-            {apiError}
+      <div className="p-6 sm:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-1.5 border border-blue-100/50">
+            <button
+              onClick={() => setSelectedTab("overview")}
+              className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${
+                selectedTab === "overview"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              }`}
+            >
+              📊 Tổng quan
+            </button>
+            <button
+              onClick={() => setSelectedTab("prediction")}
+              className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${
+                selectedTab === "prediction"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200 scale-105"
+                  : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+              }`}
+            >
+              🔮 Dự đoán
+            </button>
           </div>
-        )}
 
-        {/* Prediction Tab */}
-        {selectedTab === "prediction" && (
-          <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">
-              Dự đoán hiệu suất tương lai
-            </h2>
-            <PredictionPanel
-              currentStudent={currentStudent}
-              highlightedSubject={highlightedSubject}
-              onHighlightSubject={(s) => setHighlightedSubject(s)}
-            />
-          </div>
-        )}
-
-        {/* Overview Tab */}
-        {selectedTab === "overview" && (
-          <>
-            {/* Header */}
-            <StudentHeader
-              studentName={userDisplayName}
-              studentInfo={currentStudent.info}
-              isLoading={loading}
-            />
-
-            {/* GPA Charts */}
-            <GpaTrendChart
-              gpaData={computedGpaData ?? currentStudent.gpaData}
-              overallGPA={currentStudent.overallGPA}
-              overallRank={apiOverallRank}
-              getGradeRank={getGradeRank}
-            />
-
-            {/* Semester Selection */}
-            <Semester
-              semesters={semesters}
-              selectedSemester={selectedSemester}
-              onSemesterChange={setSelectedSemester}
-              coursesPerSemester={apiCoursesPerSemester}
-              coursesLoading={coursesLoading}
-              coursesError={coursesError}
-            />
-
-            {/* Detailed Scores Table */}
-            <DetailedScoresTable
-              courses={currentScores}
-              semesterName={
-                semesters.find(
-                  (s: { id: number; name: string; year: string }) =>
-                    s.id === selectedSemester
-                )?.name ?? ""
-              }
-            />
-
-            {/* Pass Rate Chart */}
-            <PassRateChart
-              semesters={semesters}
-              coursesPerSemester={coursesPerSemester}
-              overallPassRate={overallPassRate}
-            />
-
-            {/* Other Components */}
-            <div className="flex gap-6">
-              <StudentScoreChartHighestLowest />
+          {/* API Error */}
+          {apiError && (
+            <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-700 p-4 rounded-2xl shadow-lg shadow-red-100/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="w-5 h-5 rounded-full bg-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="font-semibold">Lỗi tải dữ liệu</div>
+                <div className="text-sm mt-1">{apiError}</div>
+              </div>
             </div>
+          )}
 
-            {/* Comparison Chart */}
-            <ComparisonChart comparisonData={filteredComparison} />
-
-            {/* Classification Chart */}
-            <StudentClassificationChart semester={selectedSemester} />
-
-            {/* Training Score & Rate */}
-            <div className="flex gap-6">
-              <TrainingScoreChart trainingScoreData={trainingScoreData} />
-              <RateGpaAndPoint />
+          {/* Prediction Tab */}
+          {selectedTab === "prediction" && (
+            <div className="bg-white rounded-2xl p-8 border border-blue-100/50 shadow-xl shadow-blue-100/20 transition-all duration-300">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-6">
+                🔮 Dự đoán hiệu suất tương lai
+              </h2>
+              <PredictionPanel
+                currentStudent={currentStudent}
+                highlightedSubject={highlightedSubject}
+                onHighlightSubject={(s) => setHighlightedSubject(s)}
+              />
             </div>
-          </>
-        )}
+          )}
+
+          {/* Overview Tab */}
+          {selectedTab === "overview" && (
+            <>
+              {/* Header */}
+              <StudentHeader
+                studentName={userDisplayName}
+                studentInfo={currentStudent.info}
+                isLoading={loading}
+              />
+
+              {/* GPA Charts */}
+              <GpaTrendChart
+                gpaData={computedGpaData ?? currentStudent.gpaData}
+                overallGPA={currentStudent.overallGPA}
+                overallRank={apiOverallRank}
+                getGradeRank={getGradeRank}
+              />
+
+              {/* Semester Selection */}
+              <Semester
+                semesters={semesters}
+                selectedSemester={selectedSemester}
+                onSemesterChange={setSelectedSemester}
+                coursesPerSemester={apiCoursesPerSemester}
+                coursesLoading={coursesLoading}
+                coursesError={coursesError}
+              />
+
+              {/* Detailed Scores Table */}
+              <DetailedScoresTable
+                courses={currentScores}
+                semesterName={
+                  semesters.find(
+                    (s: { id: number; name: string; year: string }) =>
+                      s.id === selectedSemester
+                  )?.name ?? ""
+                }
+              />
+              <div className="flex gap-6">
+                <PassRateChart
+                  semesters={semesters}
+                  coursesPerSemester={coursesPerSemester}
+                  overallPassRate={overallPassRate}
+                />
+                <StudentScoreChartHighestLowest />
+              </div>
+
+              {/* Comparison Chart */}
+              <ComparisonChart comparisonData={filteredComparison} />
+
+              {/* Classification Chart */}
+              <StudentClassificationChart semester={selectedSemester} />
+
+              {/* Training Score & Rate */}
+              <div className="flex gap-6">
+                <TrainingScoreChart trainingScoreData={trainingScoreData} />
+                <RateGpaAndPoint />
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

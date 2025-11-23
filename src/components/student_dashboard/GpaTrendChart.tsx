@@ -14,7 +14,6 @@ import {
 } from "recharts";
 import { TrendingUp, Award } from "lucide-react";
 import { SemesterGPA } from "../../utils/studentNormalizers";
-import { getDynamicAxisMax } from "../../utils/dataCalculators";
 
 interface GpaTrendChartProps {
   gpaData: SemesterGPA[];
@@ -42,12 +41,15 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-50 rounded-xl">
+      <div className="lg:col-span-2 card-modern p-8">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+
+        <div className="relative flex items-center gap-3 mb-6">
+          <div className="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl">
             <TrendingUp className="w-6 h-6 text-blue-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
             Xu hướng GPA theo học kỳ
           </h2>
         </div>
@@ -64,13 +66,13 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
           >
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#e2e8f0"
-              opacity={0.6}
+              stroke="#e0e7ff"
+              opacity={0.4}
             />
             <XAxis
               dataKey="semester"
-              stroke="#64748b"
-              tick={{ fontSize: 12 }}
+              stroke="#94a3b8"
+              tick={{ fontSize: 12, fontWeight: 500 }}
               padding={{ left: 0, right: 0 }}
               interval="preserveStartEnd"
               tickLine={false}
@@ -78,22 +80,22 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
             />
             <YAxis
               domain={[0, dynamicYMax]}
-              stroke="#64748b"
-              tick={{ fontSize: 12 }}
+              stroke="#94a3b8"
+              tick={{ fontSize: 12, fontWeight: 500 }}
               tickLine={false}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: "#fff",
                 border: "none",
-                borderRadius: "12px",
-                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                padding: "12px 16px",
+                borderRadius: "16px",
+                boxShadow: "0 10px 25px -5px rgb(59, 130, 246, 0.2)",
+                padding: "14px 18px",
               }}
               labelStyle={{
-                fontWeight: "600",
+                fontWeight: "700",
                 color: "#1e293b",
-                fontSize: "13px",
+                fontSize: "14px",
               }}
               formatter={(
                 value: number,
@@ -104,10 +106,7 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
                 "GPA",
               ]}
             />
-            <Legend
-              wrapperStyle={{ paddingTop: "16px" }}
-              iconType="circle"
-            />
+            <Legend wrapperStyle={{ paddingTop: "16px" }} iconType="circle" />
             <Line
               type="monotone"
               dataKey="gpa"
@@ -115,23 +114,29 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
               strokeWidth={3}
               dot={{
                 fill: "#3B82F6",
-                r: 5,
+                r: 6,
                 strokeWidth: 2,
                 stroke: "#fff",
               }}
-              activeDot={{ r: 7, fill: "#2563EB" }}
+              activeDot={{ r: 8, fill: "#1e40af", strokeWidth: 2 }}
               name="GPA"
+              isAnimationActive={true}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-purple-50 rounded-xl">
-            <Award className="w-6 h-6 text-purple-600" />
+      <div className="card-modern p-8">
+        {/* Decorative elements */}
+        <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-100/10 rounded-full -mr-20 -mb-20 blur-2xl" />
+
+        <div className="relative flex items-center gap-3 mb-6">
+          <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl">
+            <Award className="w-6 h-6 text-indigo-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">GPA Trung bình</h2>
+          <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-700 bg-clip-text text-transparent">
+            GPA Trung bình
+          </h2>
         </div>
 
         <ResponsiveContainer width="100%" height={220}>
@@ -155,7 +160,7 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
               dataKey="value"
             >
               <Cell fill="#3B82F6" />
-              <Cell fill="#F1F5F9" />
+              <Cell fill="#E0E7FF" />
             </Pie>
             <Tooltip
               formatter={(value: number | string, name: string) => [
@@ -165,21 +170,21 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
               contentStyle={{
                 backgroundColor: "#fff",
                 border: "none",
-                borderRadius: "12px",
-                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                padding: "12px 16px",
+                borderRadius: "16px",
+                boxShadow: "0 10px 25px -5px rgb(59, 130, 246, 0.2)",
+                padding: "14px 18px",
               }}
             />
           </PieChart>
         </ResponsiveContainer>
 
-        <div className="text-center mt-4">
-          <div className="text-3xl font-bold text-blue-600">
+        <div className="text-center mt-6 relative">
+          <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             {overallGPA.toFixed(2)}/10.0
           </div>
-          <div className="text-sm text-slate-600 mt-1">
+          <div className="text-sm text-slate-600 mt-2 font-semibold">
             Học lực:{" "}
-            <span className="font-bold">
+            <span className="text-blue-600">
               {overallRank ?? getGradeRank(overallGPA)}
             </span>
           </div>
