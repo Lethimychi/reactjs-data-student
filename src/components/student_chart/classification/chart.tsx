@@ -65,10 +65,14 @@ export default function StudentClassificationChart({
 
     return filtered.reduce(
       (acc, row) => {
-        acc.Giỏi += row.TyLe_Gioi;
-        acc.Khá += row.TyLe_Kha;
-        acc["Trung bình"] += row.TyLe_TB;
-        acc.Yếu += row.TyLe_Yeu;
+        acc["Giỏi"] += row.So_A ?? 0;
+
+        acc["Khá"] += (row["So_B+"] ?? 0) + (row.So_B ?? 0);
+
+        acc["Trung bình"] += (row["So_C+"] ?? 0) + (row.So_C ?? 0);
+
+        acc["Yếu"] += (row["So_D+"] ?? 0) + (row.So_D ?? 0) + (row.So_F ?? 0);
+
         return acc;
       },
       { ...initial }
@@ -169,8 +173,8 @@ export default function StudentClassificationChart({
                     : "opacity-70"
                 }`}
               style={{
-                borderColor: GRADE_COLORS[item.name] ?? "#999",
-                backgroundColor: `${GRADE_COLORS[item.name] ?? "#999"}`,
+                borderColor: `${GRADE_COLORS[item.name] ?? "#999"}30`,
+                backgroundColor: `${GRADE_COLORS[item.name] ?? "#999"}15`,
               }}
             >
               <p
