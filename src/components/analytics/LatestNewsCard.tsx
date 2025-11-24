@@ -25,7 +25,7 @@ export default function LatestNewsCard({
         </div>
       </header>
 
-      <p className="mt-5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+      <p className="mt-5 text-sm leading-relaxed text-blue-600 dark:text-gray-400">
         The Nagasaki Lander is the trademarked name of several series of
         Nagasaki sport bikes that started with the 1984 ABCD.
       </p>
@@ -34,7 +34,7 @@ export default function LatestNewsCard({
         <span>2 years ago</span>
         <a
           href="#"
-          className="text-sm font-semibold text-indigo-500 transition-colors hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300"
+          className="text-sm font-semibold text-sky-600 transition-colors hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
         >
           Read more
         </a>

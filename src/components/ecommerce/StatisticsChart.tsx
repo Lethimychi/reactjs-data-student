@@ -4,6 +4,7 @@ import { ApexOptions } from "apexcharts";
 import {
   fetchStudentGPAs,
   StudentGPARecord,
+  fetchStudentsByClass,
 } from "../../utils/ClassLecturerApi";
 
 interface StatisticsChartProps {
@@ -29,12 +30,40 @@ export default function StatisticsChart({
       setLoading(true);
       setError(null);
       try {
-        const records = await fetchStudentGPAs(
-          selectedClassName,
-          selectedSemesterDisplayName
-        );
-        if (!ignore) setData(records);
-      } catch {
+        // Fetch both roster and semester GPAs, then merge so every roster student appears
+        const [roster, gpas] = await Promise.all([
+          fetchStudentsByClass(selectedClassName),
+          fetchStudentGPAs(selectedClassName, selectedSemesterDisplayName),
+        ]);
+
+        // If roster is empty -> treat as no data for this semester
+        if (!roster || roster.length === 0) {
+          if (!ignore) setData([]);
+          return;
+        }
+
+        // Build quick lookup of GPA by student name (normalized)
+        const gpaByName = new Map<string, number>();
+        for (const r of gpas || []) {
+          const nm = (r.studentName || "").trim();
+          if (nm) gpaByName.set(nm, Number.isFinite(r.gpa) ? r.gpa : 0);
+        }
+
+        // For each roster entry, prefer roster name fields and fallback to GPA list order
+        const merged: StudentGPARecord[] = roster.map((st) => {
+          const name = String(
+            st["Ho Ten"] ?? st["Ten Sinh Vien"] ?? st["StudentName"] ?? ""
+          ).trim();
+          const gpa = gpaByName.has(name) ? (gpaByName.get(name) as number) : 0; // default 0 when student has no GPA for that semester
+          return { studentName: name || "(không tên)", gpa };
+        });
+
+        // If roster has entries but none have GPA entries and gpas was empty,
+        // still show roster students with GPA=0 (per requirement). Only when roster empty
+        // do we show 'Không có dữ liệu'.
+        if (!ignore) setData(merged);
+      } catch (err) {
+        console.error("StatisticsChart load error:", err);
         if (!ignore) setError("Không thể tải dữ liệu GPA sinh viên");
       } finally {
         if (!ignore) setLoading(false);
@@ -161,7 +190,7 @@ export default function StatisticsChart({
             <p className="mt-1 text-slate-500 text-sm">
               {selectedClassName && selectedSemesterDisplayName
                 ? `${selectedClassName} • ${selectedSemesterDisplayName}`
-                : "Mặc định: 12DHTH11 • HK1 - 2024-2025"}
+                : "Mặc định: 12DHTH10 • HK1 - 2024-2025"}
             </p>
           </div>
         </div>

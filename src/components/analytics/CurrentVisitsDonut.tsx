@@ -1,5 +1,6 @@
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
+import { COLORS } from "../../utils/colors";
 
 interface CurrentVisitsDonutProps {
   className?: string;
@@ -24,14 +25,15 @@ export default function CurrentVisitsDonut({
       fontSize: "14px",
       fontFamily: "Inter, sans-serif",
       labels: {
-        colors: "#6B7280",
+        colors: COLORS[1],
       },
     },
     dataLabels: {
       enabled: false,
     },
     labels,
-    colors: ["#5D5FEF", "#F7936F", "#0EA5E9", "#F9A8D4"],
+    // use shared blue palette (first 4 colors)
+    colors: COLORS.slice(0, 4),
     plotOptions: {
       pie: {
         expandOnClick: false,
@@ -63,14 +65,14 @@ export default function CurrentVisitsDonut({
 
   return (
     <div
-      className={`rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] ${className}`}
+      className={`rounded-2xl border border-blue-100  p-6 dark:border-sky-800 dark:bg-white ${className}`}
     >
       <header className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-            Current visits
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-white/90">
+            Tỷ lệ học lực theo môn
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-blue-600 dark:text-gray-400">
             +43% than last year
           </p>
         </div>

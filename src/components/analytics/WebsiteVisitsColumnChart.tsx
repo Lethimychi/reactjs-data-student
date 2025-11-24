@@ -1,5 +1,6 @@
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
+import { COLORS } from "../../utils/colors";
 
 interface WebsiteVisitsColumnChartProps {
   className?: string;
@@ -8,11 +9,13 @@ interface WebsiteVisitsColumnChartProps {
 const series = [
   {
     name: "Team A",
+    type: "column",
     data: [38, 32, 35, 52, 41, 45, 55, 48, 60],
   },
   {
-    name: "Team B",
-    data: [55, 45, 60, 40, 72, 60, 34, 40, 30],
+    name: "Target",
+    type: "line",
+    data: [30, 34, 33, 50, 45, 43, 50, 52, 58],
   },
 ];
 
@@ -21,6 +24,7 @@ export default function WebsiteVisitsColumnChart({
 }: WebsiteVisitsColumnChartProps) {
   const options: ApexOptions = {
     chart: {
+      // mixed chart (column + line) - default type kept as 'bar' but series types override
       type: "bar",
       fontFamily: "Inter, sans-serif",
       toolbar: { show: false },
@@ -38,9 +42,7 @@ export default function WebsiteVisitsColumnChart({
       fontSize: "13px",
       fontFamily: "Inter, sans-serif",
       markers: {
-        width: 10,
-        height: 10,
-        radius: 12,
+        size: 10,
       },
     },
     fill: {
@@ -51,10 +53,11 @@ export default function WebsiteVisitsColumnChart({
     },
     stroke: {
       show: true,
-      width: 2,
-      colors: ["transparent"],
+      // width per series: 0 for columns, 3 for the line
+      width: [0, 3],
+      curve: "smooth",
     },
-    colors: ["#5D5FEF", "#F7936F"],
+    colors: [COLORS[1], COLORS[0]],
     grid: {
       borderColor: "#E5E7EB",
       strokeDashArray: 6,
@@ -99,14 +102,14 @@ export default function WebsiteVisitsColumnChart({
 
   return (
     <div
-      className={`rounded-3xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] ${className}`}
+      className={`rounded-2xl border border-blue-100  p-6 dark:border-sky-800 dark:bg-white/[0.03] ${className}`}
     >
       <header className="flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-            Website visits
+          <h3 className="text-lg font-semibold text-blue-900 dark:text-white/90">
+            Điểm trung bình theo môn
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-blue-600 dark:text-gray-400">
             +43% than last year
           </p>
         </div>

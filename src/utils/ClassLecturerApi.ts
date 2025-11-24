@@ -59,6 +59,9 @@ const semesterIdByKey = new Map<string, number>();
 let cachedRecords: AdvisorRecord[] | null = null;
 // Roster cache per class (normalized class name -> set of student names)
 const rosterByClass = new Map<string, Set<string>>();
+// Cache for GPA/DRL endpoint to avoid repeated network requests
+let cachedGpaConductPayload: unknown | null = null;
+let gpaConductFetchPromise: Promise<unknown> | null = null;
 
 const normalizeTerm = (raw: string): string => {
   const t = raw.trim();
@@ -226,6 +229,44 @@ export async function fetchStudentCount(
   }
 }
 
+// Male / Female counts per class
+const STUDENT_GENDER_ENDPOINT =
+  "/api/giangvien/So-Luong-Sinh-Vien-Nam-Nu-Theo-Lop";
+
+export async function fetchGenderCountByClass(
+  className?: string,
+  fallbackClass: string = "14DHBM02"
+): Promise<{ male: number; female: number } | null> {
+  try {
+    const data = await fetchWithAuth<unknown>(STUDENT_GENDER_ENDPOINT);
+    const records: Array<Record<string, unknown>> = Array.isArray(data)
+      ? (data as Array<Record<string, unknown>>)
+      : [];
+
+    const target = (className || fallbackClass).trim().toLowerCase();
+    const match = records.find(
+      (r) =>
+        String(r["Ten Lop"] ?? "")
+          .trim()
+          .toLowerCase() === target
+    );
+
+    if (!match) return { male: 0, female: 0 };
+
+    const maleRaw =
+      match["SoNam"] ?? match["SoNam"] ?? match["So Nam"] ?? match["So_Nam"];
+    const femaleRaw =
+      match["SoNu"] ?? match["SoNu"] ?? match["So Nu"] ?? match["So_Nu"];
+
+    const male = parseNumericId(maleRaw) ?? 0;
+    const female = parseNumericId(femaleRaw) ?? 0;
+    return { male, female };
+  } catch (e) {
+    console.error("Không thể tải số lượng nam/nữ theo lớp", e);
+    return null;
+  }
+}
+
 // Pass rate & debt count (tỷ lệ đậu / số rớt) theo lớp / học kỳ / năm học
 interface ClassPerformance {
   passRate: number | null; // Ty_Le_Dau (0..1)
@@ -373,6 +414,436 @@ export async function fetchClassAverageGPA(
   }
 }
 
+// Phân bố học lực theo lớp / học kỳ (xuất sắc, giỏi, khá, trung bình, yếu)
+const GRADE_DISTRIBUTION_ENDPOINT =
+  "/api/giangvien/Ty-Le-Phan-Tram-Hoc-Luc-Theo-Lop-Hoc-Ky";
+
+export async function fetchGradeDistribution(
+  className?: string,
+  semesterDisplayName?: string,
+  // when true, require matching semester/year and DO NOT fallback to other semesters
+  requireSemesterMatch: boolean = false,
+  fallbackSemester: string = "HK2 - 2024-2025",
+  fallbackClass: string = "14DHBM02"
+): Promise<{
+  xuatSac: number;
+  gioi: number;
+  kha: number;
+  trungBinh: number;
+  yeu: number;
+} | null> {
+  try {
+    const data = await fetchWithAuth<unknown>(GRADE_DISTRIBUTION_ENDPOINT);
+    const records: Array<Record<string, unknown>> = Array.isArray(data)
+      ? (data as Array<Record<string, unknown>>)
+      : [];
+
+    const effectiveClass = (className || fallbackClass).trim().toLowerCase();
+    const effectiveSemester = semesterDisplayName || fallbackSemester;
+
+    let yearFilter: string | null = null;
+    let termFilter: string | null = null;
+    if (effectiveSemester) {
+      const parts = effectiveSemester.split(" - ");
+      if (parts.length === 2) {
+        termFilter = normalizeTerm(parts[0].trim());
+        yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(effectiveSemester.trim());
+      }
+    }
+
+    // Find a matching record for the class (and semester/year if provided)
+    let match = records.find((r) => {
+      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      if (!lop || lop !== effectiveClass) return false;
+      if (yearFilter) {
+        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
+        if (year !== yearFilter) return false;
+      }
+      if (termFilter) {
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter)
+          return false;
+      }
+      return true;
+    });
+
+    if (!match && !requireSemesterMatch) {
+      match = records.find(
+        (r) =>
+          (r["Ten Lop"] as string | undefined)?.trim().toLowerCase() ===
+          effectiveClass
+      );
+    }
+
+    if (!match) return null;
+
+    const getNum = (k: string) => {
+      const v = match![k];
+      const n = typeof v === "number" ? v : parseNumericId(v);
+      return n === null ? 0 : n;
+    };
+
+    // Some APIs return fractions (0..1); keep caller expectations (percentage)
+    const xuatSac = getNum("TL_XuatSac") * 100;
+    const gioi = getNum("TL_Gioi") * 100;
+    const kha = getNum("TL_Kha") * 100;
+    const trungBinh = getNum("TL_TB") * 100;
+    const yeu = getNum("TL_Yeu") * 100;
+
+    return { xuatSac, gioi, kha, trungBinh, yeu };
+  } catch (e) {
+    console.error("Không thể tải phân bố học lực", e);
+    return null;
+  }
+}
+
+// Tỷ lệ qua môn theo từng môn cho lớp / học kỳ
+const PASS_RATE_BY_SUBJECT_ENDPOINT =
+  "/api/giangvien/Ty-Le-qua-mon-theo-lop-hoc-hoc-ky";
+
+export interface SubjectPassRate {
+  tenNamHoc?: string;
+  tenHocKy?: string;
+  tenLop?: string;
+  tenMonHoc?: string;
+  tongSVMon?: number;
+  svQuaMon?: number;
+  tiLeQuaMon?: number; // fraction 0..1
+}
+
+export async function fetchPassRateBySubject(
+  className?: string,
+  semesterDisplayName?: string,
+  fallbackSemester: string = "HK2 - 2024-2025",
+  fallbackClass: string = "14DHBM02"
+): Promise<SubjectPassRate[]> {
+  try {
+    const data = await fetchWithAuth<unknown>(PASS_RATE_BY_SUBJECT_ENDPOINT);
+    const records: Array<Record<string, unknown>> = Array.isArray(data)
+      ? (data as Array<Record<string, unknown>>)
+      : [];
+
+    const effectiveClass = (className || fallbackClass).trim().toLowerCase();
+    const effectiveSemester = semesterDisplayName || fallbackSemester;
+
+    let yearFilter: string | null = null;
+    let termFilter: string | null = null;
+    if (effectiveSemester) {
+      const parts = effectiveSemester.split(" - ");
+      if (parts.length === 2) {
+        termFilter = normalizeTerm(parts[0].trim());
+        yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(effectiveSemester.trim());
+      }
+    }
+
+    const results: SubjectPassRate[] = [];
+    records.forEach((r) => {
+      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      if (!lop || lop !== effectiveClass) return;
+      if (yearFilter) {
+        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
+        if (year !== yearFilter) return;
+      }
+      if (termFilter) {
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter) return;
+      }
+
+      const tenMon = (r["Ten Mon Hoc"] as string | undefined)?.trim() || "";
+      const tong =
+        typeof r["Tong_SV_Mon"] === "number"
+          ? (r["Tong_SV_Mon"] as number)
+          : parseNumericId(r["Tong_SV_Mon"]) ?? 0;
+      const qua =
+        typeof r["SV_QuaMon"] === "number"
+          ? (r["SV_QuaMon"] as number)
+          : parseNumericId(r["SV_QuaMon"]) ?? 0;
+      const tile =
+        typeof r["TiLe_QuaMon"] === "number"
+          ? (r["TiLe_QuaMon"] as number)
+          : parseNumericId(r["TiLe_QuaMon"]) ?? (tong ? qua / tong : 0);
+
+      results.push({
+        tenNamHoc: (r["Ten Nam Hoc"] as string | undefined) || undefined,
+        tenHocKy: (r["Ten Hoc Ky"] as string | undefined) || undefined,
+        tenLop: (r["Ten Lop"] as string | undefined) || undefined,
+        tenMonHoc: tenMon,
+        tongSVMon: tong,
+        svQuaMon: qua,
+        tiLeQuaMon: tile,
+      });
+    });
+
+    return results;
+  } catch (e) {
+    console.error("Không thể tải tỷ lệ qua môn theo môn", e);
+    return [];
+  }
+}
+
+// Mối tương quan giữa GPA và điểm rèn luyện (per-student) theo lớp / học kỳ
+const GPA_CONDUCT_ENDPOINT =
+  "/api/giangvien/Moi-Tuong-Quan-Giua-Diem-Ren-Luyen-Trung-Binh-Va-GPA-Trung-Binh";
+
+export interface StudentGpaConductRecord {
+  tenNamHoc?: string;
+  tenHocKy?: string;
+  tenLop?: string;
+  hoTen?: string;
+  gpa?: number;
+  drl?: number; // điểm rèn luyện
+}
+
+export async function fetchGpaConductByClass(
+  className?: string,
+  semesterDisplayName?: string,
+  // when true, require matching semester/year and DO NOT fallback to other semesters
+  requireSemesterMatch: boolean = false,
+  fallbackSemester: string = "HK2 - 2024-2025",
+  fallbackClass: string = "14DHBM02"
+): Promise<Array<{ studentName: string; gpa: number; conduct: number }>> {
+  try {
+    // Use request-level cache to avoid fetching the same endpoint repeatedly when
+    // many components mount/trigger useEffect. This caches the raw payload and
+    // also deduplicates concurrent requests via a shared promise.
+    let dataPayload: unknown;
+    if (cachedGpaConductPayload !== null) {
+      dataPayload = cachedGpaConductPayload;
+    } else if (gpaConductFetchPromise) {
+      dataPayload = await gpaConductFetchPromise;
+    } else {
+      gpaConductFetchPromise = fetchWithAuth<unknown>(GPA_CONDUCT_ENDPOINT)
+        .then((d) => {
+          cachedGpaConductPayload = d;
+          gpaConductFetchPromise = null;
+          return d;
+        })
+        .catch((err) => {
+          gpaConductFetchPromise = null;
+          throw err;
+        });
+      dataPayload = await gpaConductFetchPromise;
+    }
+
+    const records: Array<Record<string, unknown>> = Array.isArray(dataPayload)
+      ? (dataPayload as Array<Record<string, unknown>>)
+      : [];
+
+    const effectiveClass = (className || fallbackClass).trim().toLowerCase();
+    const effectiveSemester = semesterDisplayName || fallbackSemester;
+
+    let yearFilter: string | null = null;
+    let termFilter: string | null = null;
+    if (effectiveSemester) {
+      const parts = effectiveSemester.split(" - ");
+      if (parts.length === 2) {
+        termFilter = normalizeTerm(parts[0].trim());
+        yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(effectiveSemester.trim());
+      }
+    }
+
+    const results: Array<{
+      studentName: string;
+      gpa: number;
+      conduct: number;
+    }> = [];
+    let _sampleLogged = false;
+    // debug: help identify field names returned by API (only in dev)
+    try {
+      console.debug(
+        "fetchGpaConductByClass: effectiveClass,effectiveSemester",
+        {
+          effectiveClass,
+          effectiveSemester,
+          received: records.length,
+        }
+      );
+      if (records.length > 0) {
+        console.debug(
+          "fetchGpaConductByClass: sample record keys",
+          Object.keys(records[0]).slice(0, 40)
+        );
+      }
+    } catch {
+      /* ignore logging errors in environments without console */
+    }
+
+    const findField = (r: Record<string, unknown>, candidates: string[]) => {
+      // try exact names first
+      for (const c of candidates) {
+        if (c in r) return r[c];
+      }
+      // then try case-insensitive / normalized match (remove spaces/underscores, toLowerCase)
+      const map = new Map<string, string>();
+      Object.keys(r).forEach((k) => {
+        const nk = k.replace(/[_\s]/g, "").toLowerCase();
+        map.set(nk, k);
+      });
+      for (const c of candidates) {
+        const nk = c.replace(/[_\s]/g, "").toLowerCase();
+        const found = map.get(nk);
+        if (found) return r[found];
+      }
+      return undefined;
+    };
+    // Normalization helper for potential class name variants
+    const normalizeClassKey = (s: string) =>
+      s.replace(/[\s_-]/g, "").toLowerCase();
+    const targetNormalized = normalizeClassKey(effectiveClass);
+
+    records.forEach((r) => {
+      const lopRaw = (r["Ten Lop"] as string | undefined)?.trim();
+      if (!lopRaw) return;
+      const lop = lopRaw.toLowerCase();
+      const lopNormalized = normalizeClassKey(lopRaw);
+      // strict or normalized match
+      if (lop !== effectiveClass && lopNormalized !== targetNormalized) return;
+      if (yearFilter) {
+        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
+        if (year !== yearFilter) return;
+      }
+      if (termFilter) {
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter) return;
+      }
+
+      const studentName = String(
+        r["Ho Ten"] ??
+          r["Ten Sinh Vien"] ??
+          r["StudentName"] ??
+          r["hoTen"] ??
+          ""
+      ).trim();
+
+      const gpaRaw = findField(r, [
+        "GPA_HocKy",
+        "GPA",
+        "GPA_Lop",
+        "DiemTB",
+        "Diem",
+      ]);
+      const drlRaw = findField(r, [
+        "DRL",
+        "DRL_Lop",
+        "Diem_RL",
+        "DiemRenLuyen",
+        "DRLlop",
+      ]);
+
+      const gpa =
+        typeof gpaRaw === "number" ? gpaRaw : parseNumericId(gpaRaw) ?? 0;
+      const conduct =
+        typeof drlRaw === "number" ? drlRaw : parseNumericId(drlRaw) ?? 0;
+
+      // one-time debug of parsed numeric values (no PII)
+      if (!_sampleLogged) {
+        try {
+          console.debug("fetchGpaConductByClass: parsed first row", {
+            gpa,
+            conduct,
+          });
+        } catch {
+          /* ignore */
+        }
+        _sampleLogged = true;
+      }
+
+      if (studentName) results.push({ studentName, gpa, conduct });
+    });
+
+    // Fallback: if no results matched semester filter but class exists in dataset, try again ignoring semester
+    // Only do this relaxed fallback when the caller allows it (requireSemesterMatch === false)
+    if (results.length === 0 && termFilter && !requireSemesterMatch) {
+      const relaxed: Array<{
+        studentName: string;
+        gpa: number;
+        conduct: number;
+      }> = [];
+      records.forEach((r) => {
+        const lopRaw = (r["Ten Lop"] as string | undefined)?.trim();
+        if (!lopRaw) return;
+        const lopNormalized = normalizeClassKey(lopRaw);
+        if (lopNormalized !== targetNormalized) return;
+        // Ignore year/term filters here intentionally
+        const studentName = String(
+          r["Ho Ten"] ??
+            r["Ten Sinh Vien"] ??
+            r["StudentName"] ??
+            r["hoTen"] ??
+            ""
+        ).trim();
+        const gpaRaw = findField(r, [
+          "GPA_HocKy",
+          "GPA",
+          "GPA_Lop",
+          "DiemTB",
+          "Diem",
+        ]);
+        const drlRaw = findField(r, [
+          "DRL",
+          "DRL_Lop",
+          "Diem_RL",
+          "DiemRenLuyen",
+          "DRLlop",
+        ]);
+        const gpa =
+          typeof gpaRaw === "number" ? gpaRaw : parseNumericId(gpaRaw) ?? 0;
+        const conduct =
+          typeof drlRaw === "number" ? drlRaw : parseNumericId(drlRaw) ?? 0;
+        if (studentName) relaxed.push({ studentName, gpa, conduct });
+      });
+      if (relaxed.length) {
+        console.debug(
+          "fetchGpaConductByClass: no semester match; using relaxed (ignore semester) dataset",
+          { count: relaxed.length }
+        );
+        results.push(...relaxed);
+      }
+    }
+
+    // If DRL values look like they are on a small scale (0..1 or 0..5), scale them to 0..100 for display
+    try {
+      const conductVals = results.map((x) => x.conduct);
+      const maxConduct = conductVals.length ? Math.max(...conductVals) : 0;
+      if (maxConduct > 0 && maxConduct <= 1) {
+        // fraction 0..1 => percentage
+        results.forEach((x) => {
+          x.conduct = Math.round(x.conduct * 100);
+        });
+        console.debug("fetchGpaConductByClass: scaled DRL from 0..1 to 0..100");
+      } else if (maxConduct > 0 && maxConduct <= 5) {
+        // 0..5 scale (e.g., 0-5) => convert to 0..100
+        results.forEach((x) => {
+          x.conduct = Math.round(x.conduct * 20);
+        });
+        console.debug("fetchGpaConductByClass: scaled DRL from 0..5 to 0..100");
+      }
+    } catch {
+      /* ignore scaling errors */
+    }
+
+    return results;
+  } catch (e) {
+    console.error("Không thể tải dữ liệu GPA/DRL theo lớp", e);
+    return [];
+  }
+}
+
 // GPA từng sinh viên trong lớp tại học kỳ năm học
 export interface StudentGPARecord {
   studentName: string;
@@ -385,8 +856,8 @@ const STUDENT_GPA_ENDPOINT =
 export async function fetchStudentGPAs(
   className?: string,
   semesterDisplayName?: string,
-  fallbackSemester: string = "HK1 - 2024-2025",
-  fallbackClass: string = "12DHTH11"
+  fallbackSemester: string = "HK2 - 2024-2025",
+  fallbackClass: string = "14DHBM02"
 ): Promise<StudentGPARecord[]> {
   try {
     const data = await fetchWithAuth<unknown>(STUDENT_GPA_ENDPOINT);
@@ -409,20 +880,12 @@ export async function fetchStudentGPAs(
       }
     }
 
-    // 1. Thu thập roster đầy đủ của lớp bất kể học kỳ (quét toàn bộ records)
-    const fullRosterSet = new Set<string>();
-    records.forEach((r) => {
-      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
-      if (!lop || lop !== effectiveClass) return;
-      const name = (r["Ho Ten"] as string | undefined)?.trim();
-      if (name) fullRosterSet.add(name);
-    });
-
-    // 2. Lọc GPA theo học kỳ được chọn
+    // Collect GPA records for the selected class and semester
     const semesterResult: StudentGPARecord[] = [];
     records.forEach((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop || lop !== effectiveClass) return;
+
       if (yearFilter) {
         const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
         if (year && year !== yearFilter) return;
@@ -434,33 +897,107 @@ export async function fetchStudentGPAs(
         const normalizedTen = termTen ? normalizeTerm(termTen) : null;
         if (normalizedMa !== termFilter && normalizedTen !== termFilter) return;
       }
-      const studentName = (r["Ho Ten"] as string | undefined)?.trim();
-      const gpaRaw = r["GPA_HocKy"];
+
+      const name = String(
+        r["Ho Ten"] ?? r["Ten Sinh Vien"] ?? r["StudentName"] ?? ""
+      ).trim();
+      const gpaRaw =
+        r["GPA_HocKy"] ?? r["GPA"] ?? r["gpa"] ?? r["DiemTB"] ?? r["Diem"];
       const gpa = typeof gpaRaw === "number" ? gpaRaw : parseNumericId(gpaRaw);
-      if (studentName && gpa !== null)
-        semesterResult.push({ studentName, gpa });
+      if (name && gpa !== null) semesterResult.push({ studentName: name, gpa });
     });
 
-    // 3. Cập nhật roster cache (hợp nhất với roster mới quét)
-    const rosterKey = effectiveClass;
-    let rosterSet = rosterByClass.get(rosterKey);
-    if (!rosterSet) {
-      rosterSet = new Set<string>();
-      rosterByClass.set(rosterKey, rosterSet);
-    }
-    fullRosterSet.forEach((n) => rosterSet!.add(n));
+    // If no per-student GPA records were found for the selected semester, return empty to indicate 'no data'
+    if (semesterResult.length === 0) return [];
 
-    // 4. Xây dựng danh sách cuối cùng: toàn bộ roster, GPA=0 nếu không có trong học kỳ
-    const rosterArray = Array.from(rosterSet).sort((a, b) =>
-      a.localeCompare(b, "vi")
+    // Sort by student name for stable ordering
+    semesterResult.sort((a, b) =>
+      a.studentName.localeCompare(b.studentName, "vi")
     );
-    const gpaMap = new Map(semesterResult.map((r) => [r.studentName, r.gpa]));
-    return rosterArray.map((name) => ({
-      studentName: name,
-      gpa: gpaMap.get(name) ?? 0,
-    }));
+    return semesterResult;
   } catch (e) {
-    console.error("Không thể tải GPA từng sinh viên", e);
+    console.error("Không thể tải GPA sinh viên", e);
+    return [];
+  }
+}
+
+// Course averages vs faculty GPA per course
+const COURSE_AVERAGE_ENDPOINT =
+  "/api/giangvien/Diem-Trung-Binh-Mon-So-Voi-GPA-Toan-Khoa";
+
+export interface CourseAverageRecord {
+  tenNamHoc?: string;
+  maHocKy?: string;
+  tenLop?: string;
+  tenMonHoc?: string;
+  gpaLop?: number;
+  gpaKhoa?: number;
+}
+
+export async function fetchCourseAverages(
+  className?: string,
+  semesterDisplayName?: string,
+  fallbackSemester: string = "HK2 - 2024-2025",
+  fallbackClass: string = "14DHBM02"
+): Promise<CourseAverageRecord[]> {
+  try {
+    const data = await fetchWithAuth<unknown>(COURSE_AVERAGE_ENDPOINT);
+    const records: Array<Record<string, unknown>> = Array.isArray(data)
+      ? (data as Array<Record<string, unknown>>)
+      : [];
+
+    const effectiveClass = (className || fallbackClass).trim().toLowerCase();
+    const effectiveSemester = semesterDisplayName || fallbackSemester;
+
+    let yearFilter: string | null = null;
+    let termFilter: string | null = null;
+    if (effectiveSemester) {
+      const parts = effectiveSemester.split(" - ");
+      if (parts.length === 2) {
+        termFilter = normalizeTerm(parts[0].trim());
+        yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(effectiveSemester.trim());
+      }
+    }
+
+    const results: CourseAverageRecord[] = [];
+    records.forEach((r) => {
+      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      if (!lop || lop !== effectiveClass) return;
+      if (yearFilter) {
+        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
+        if (year !== yearFilter) return;
+      }
+      if (termFilter) {
+        const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const normalizedMa = termMa ? normalizeTerm(termMa) : null;
+        const normalizedTen = termTen ? normalizeTerm(termTen) : null;
+        if (normalizedMa !== termFilter && normalizedTen !== termFilter) return;
+      }
+
+      const tenMon = (r["Ten Mon Hoc"] as string | undefined)?.trim() || "";
+      const rawLop = r["GPA_Lop"];
+      const rawKhoa = r["GPA_Khoa"];
+      const gpaLop =
+        typeof rawLop === "number" ? rawLop : parseNumericId(rawLop) ?? 0;
+      const gpaKhoa =
+        typeof rawKhoa === "number" ? rawKhoa : parseNumericId(rawKhoa) ?? 0;
+
+      results.push({
+        tenNamHoc: (r["Ten Nam Hoc"] as string | undefined) || undefined,
+        maHocKy: (r["Ma Hoc Ky"] as string | undefined) || undefined,
+        tenLop: (r["Ten Lop"] as string | undefined) || undefined,
+        tenMonHoc: tenMon,
+        gpaLop,
+        gpaKhoa,
+      });
+    });
+
+    return results;
+  } catch (e) {
+    console.error("Không thể tải điểm trung bình theo môn", e);
     return [];
   }
 }
@@ -470,9 +1007,190 @@ export function clearClassAdvisorCache(): void {
   semesterKeyById.clear();
   semesterIdByKey.clear();
   rosterByClass.clear();
+  // clear GPA/DRL cache as well
+  cachedGpaConductPayload = null;
+  gpaConductFetchPromise = null;
 }
 
 export interface AdvisorClass {
   Ten_Lop: string;
   [key: string]: unknown;
+}
+
+// -----------------------------------------
+// Danh sách sinh viên theo lớp (POST body: { lop: string })
+const STUDENT_LIST_BY_CLASS_ENDPOINT =
+  "/api/giangvien/Danh-Sach-Sinh-Vien-Lop-X";
+
+export async function fetchStudentsByClass(
+  lop: string
+): Promise<Array<Record<string, unknown>>> {
+  try {
+    if (!API_BASE_URL) throw new Error("API_BASE_URL is not defined");
+    const auth = getAuth();
+    if (!auth.token) throw new Error("Thiếu token xác thực");
+
+    const url = `${API_BASE_URL}${STUDENT_LIST_BY_CLASS_ENDPOINT}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `${auth.tokenType ?? "Bearer"} ${auth.token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "69420",
+      },
+      body: JSON.stringify({ lop }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `Request failed with status ${res.status}`);
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(
+        `Unexpected response type: ${contentType}. Payload: ${text.slice(
+          0,
+          300
+        )}`
+      );
+    }
+
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    console.error("Không thể tải danh sách sinh viên theo lớp", e);
+    return [];
+  }
+}
+
+// ================== Môn có tỷ lệ rớt cao / thấp nhất theo lớp ==================
+const SUBJECT_HIGHEST_FAIL_ENDPOINT =
+  "/api/giangvien/Mon-Hoc-Ty-Le-Rot-Cao-Nhat-Theo-Lop";
+const SUBJECT_LOWEST_FAIL_ENDPOINT =
+  "/api/giangvien/Mon-Hoc-Ty-Le-Rot-Thap-Nhat-Theo-Lop";
+
+export interface ExtremeFailRateSubject {
+  year?: string; // Ten Nam Hoc
+  term?: string; // Ten Hoc Ky (normalized)
+  className?: string; // Ten Lop
+  subjectName?: string; // Ten Mon Hoc
+  totalStudents?: number; // Tong_SV
+  failCount?: number; // SV_Rot (highest fail endpoint)
+  passCount?: number; // SV_Dau (lowest fail endpoint)
+  failRatePercent?: number; // Ty_Le_Rot (0..1 => %) or already percentage
+  passRatePercent?: number; // Ty_Le_Dau (0..1 => %) or already percentage
+  avgScore?: number; // DTB (điểm trung bình môn)
+}
+
+export interface ExtremeFailRateSubjectsResult {
+  highest?: ExtremeFailRateSubject; // từ endpoint cao nhất
+  lowest?: ExtremeFailRateSubject; // từ endpoint thấp nhất
+}
+
+export async function fetchExtremeFailRateSubjects(
+  className?: string,
+  semesterDisplayName?: string,
+  fallbackSemester: string = "HK2 - 2024-2025",
+  fallbackClass: string = "14DHBM02"
+): Promise<ExtremeFailRateSubjectsResult> {
+  try {
+    const effectiveClass = (className || fallbackClass).trim().toLowerCase();
+    const effectiveSemester = semesterDisplayName || fallbackSemester;
+
+    let yearFilter: string | null = null;
+    let termFilter: string | null = null;
+    if (effectiveSemester) {
+      const parts = effectiveSemester.split(" - ");
+      if (parts.length === 2) {
+        termFilter = normalizeTerm(parts[0].trim());
+        yearFilter = parts[1].trim();
+      } else {
+        termFilter = normalizeTerm(effectiveSemester.trim());
+      }
+    }
+
+    const toPercent = (v: unknown): number | undefined => {
+      if (typeof v === "number") return v <= 1 ? v * 100 : v;
+      if (typeof v === "string") {
+        const num = Number(v.trim());
+        if (Number.isFinite(num)) return num <= 1 ? num * 100 : num;
+      }
+      return undefined;
+    };
+
+    const parseSingle = (
+      raw: unknown,
+      isHighest: boolean
+    ): ExtremeFailRateSubject | undefined => {
+      if (!raw || typeof raw !== "object") return undefined;
+      const r = raw as Record<string, unknown>;
+      const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      if (!lop) return undefined;
+      if (lop !== effectiveClass) return undefined;
+      if (yearFilter) {
+        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
+        if (year !== yearFilter) return undefined;
+      }
+      if (termFilter) {
+        const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
+        const termNorm = termTen ? normalizeTerm(termTen) : null;
+        if (termNorm && termNorm !== termFilter) return undefined;
+      }
+      return {
+        year: (r["Ten Nam Hoc"] as string | undefined) || undefined,
+        term: (r["Ten Hoc Ky"] as string | undefined) || undefined,
+        className: (r["Ten Lop"] as string | undefined) || undefined,
+        subjectName: (r["Ten Mon Hoc"] as string | undefined) || undefined,
+        totalStudents:
+          typeof r["Tong_SV"] === "number"
+            ? (r["Tong_SV"] as number)
+            : parseNumericId(r["Tong_SV"]) ?? undefined,
+        failCount: isHighest
+          ? typeof r["SV_Rot"] === "number"
+            ? (r["SV_Rot"] as number)
+            : parseNumericId(r["SV_Rot"]) ?? undefined
+          : undefined,
+        passCount: !isHighest
+          ? typeof r["SV_Dau"] === "number"
+            ? (r["SV_Dau"] as number)
+            : parseNumericId(r["SV_Dau"]) ?? undefined
+          : undefined,
+        failRatePercent: isHighest ? toPercent(r["Ty_Le_Rot"]) : undefined,
+        passRatePercent: !isHighest ? toPercent(r["Ty_Le_Dau"]) : undefined,
+        avgScore:
+          typeof r["DTB"] === "number"
+            ? (r["DTB"] as number)
+            : parseNumericId(r["DTB"]) ?? undefined,
+      };
+    };
+
+    const [highestRaw, lowestRaw] = await Promise.all([
+      fetchWithAuth<unknown>(SUBJECT_HIGHEST_FAIL_ENDPOINT),
+      fetchWithAuth<unknown>(SUBJECT_LOWEST_FAIL_ENDPOINT),
+    ]);
+
+    const extractFirst = (
+      payload: unknown,
+      isHighest: boolean
+    ): ExtremeFailRateSubject | undefined => {
+      if (Array.isArray(payload)) {
+        for (const item of payload) {
+          const parsed = parseSingle(item, isHighest);
+          if (parsed) return parsed;
+        }
+        return undefined;
+      }
+      return parseSingle(payload, isHighest);
+    };
+
+    const highest = extractFirst(highestRaw, true);
+    const lowest = extractFirst(lowestRaw, false);
+    return { highest, lowest };
+  } catch (e) {
+    console.error("Không thể tải dữ liệu môn có tỷ lệ rớt cao/thấp nhất", e);
+    return {};
+  }
 }
