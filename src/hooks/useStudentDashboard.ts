@@ -4,12 +4,32 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { Course, createEmptyStudent, makeSemesterKey, normalizeStudent, SemesterGPA, Student, TrainingScore } from "../utils/studentNormalizers";
-import getStudentInfo, { ClassAverageRecord, CourseApiRecord, getStudentClassAverageComparison, getStudentCoursesBySemester, getStudentDetailedCourses, getStudentGpaBySemester, getStudentOverallGpa, getStudentPassRateBySemester, getStudentTrainingScores, PassRateApiRecord } from "../utils/student_api";
-import { getNumericField, getStringField, normalizeKeyForMatching } from "../utils/dataCalculators";
-
-
-
+import {
+  Course,
+  createEmptyStudent,
+  makeSemesterKey,
+  normalizeStudent,
+  SemesterGPA,
+  Student,
+  TrainingScore,
+} from "../utils/studentNormalizers";
+import getStudentInfo, {
+  ClassAverageRecord,
+  CourseApiRecord,
+  getStudentClassAverageComparison,
+  getStudentCoursesBySemester,
+  getStudentDetailedCourses,
+  getStudentGpaBySemester,
+  getStudentOverallGpa,
+  getStudentPassRateBySemester,
+  getStudentTrainingScores,
+  PassRateApiRecord,
+} from "../utils/student_api";
+import {
+  getNumericField,
+  getStringField,
+  normalizeKeyForMatching,
+} from "../utils/dataCalculators";
 
 // ========== TYPE DEFINITIONS ==========
 
@@ -58,11 +78,12 @@ export const useStudentInfoFetch = () => {
         if (!isMounted) return;
 
         if (!Array.isArray(data)) {
-          setCurrentStudent(normalizeStudent(data));
+          setCurrentStudent(await normalizeStudent(data));
           return;
         }
 
-        setCurrentStudent(normalizeStudent(data[0]));
+        console.log("👉 DỮ LIỆU MẢNG TỪ API:", data);
+        setCurrentStudent(await normalizeStudent(data[0]));
       } catch (err) {
         console.error("Lỗi fetch API sinh viên:", err);
         if (isMounted) {
@@ -450,7 +471,9 @@ export const usePassRateFetch = (apiSemesters: SemesterInfo[]) => {
         const map: PassRateMap = {};
 
         for (const rec of data as PassRateApiRecord[]) {
-          const year = String(rec["Ten Nam Hoc"] ?? rec["TenNamHoc"] ?? "").trim();
+          const year = String(
+            rec["Ten Nam Hoc"] ?? rec["TenNamHoc"] ?? ""
+          ).trim();
           const hk = String(rec["Ten Hoc Ky"] ?? rec["TenHocKy"] ?? "").trim();
 
           const sem = apiSemesters.find(
@@ -626,9 +649,7 @@ export const useComparisonFetch = (
               (rec["NamHoc"] as string) ??
               null;
             const recHk =
-              (rec["Ten Hoc Ky"] as string) ??
-              (rec["HocKy"] as string) ??
-              null;
+              (rec["Ten Hoc Ky"] as string) ?? (rec["HocKy"] as string) ?? null;
 
             if (recYear && recHk) {
               const rYear = String(recYear).trim();
@@ -645,7 +666,9 @@ export const useComparisonFetch = (
                 (rec["Ten"] as string) ||
                 (rec["name"] as string) ||
                 "";
-              const normCourse = normalizeKeyForMatching(String(tmpCourse || ""));
+              const normCourse = normalizeKeyForMatching(
+                String(tmpCourse || "")
+              );
               const hasMatch = semesterCourses.some((c) => {
                 if (!c || !normCourse) return false;
                 return c === normCourse;

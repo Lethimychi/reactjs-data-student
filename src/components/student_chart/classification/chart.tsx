@@ -28,6 +28,7 @@ export default function StudentClassificationChart({
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<SubjectGradeRatio[]>([]);
 
+  console.log("Fetched classification data:", data);
   // Fetch data on load
   useEffect(() => {
     async function load() {
@@ -44,33 +45,39 @@ export default function StudentClassificationChart({
     load();
   }, []);
 
-const gradeCounts = useMemo(() => {
-  const initial: Record<GradeName, number> = {
-    Giỏi: 0,
-    Khá: 0,
-    "Trung bình": 0,
-    Yếu: 0,
-  };
+  const gradeCounts = useMemo(() => {
+    const initial: Record<GradeName, number> = {
+      Giỏi: 0,
+      Khá: 0,
+      "Trung bình": 0,
+      Yếu: 0,
+    };
 
-  const semesterMap: Record<number, string> = {
-    1: "HK1",
-    2: "HK2",
-  };
+    const semesterMap: Record<number, string> = {
+      1: "HK1",
+      2: "HK2",
+    };
 
-  const filtered =
-    semester === -1
-      ? data
-      : data.filter((x) => x["Ten Hoc Ky"] === semesterMap[semester]);
+    const filtered =
+      semester === -1
+        ? data
+        : data.filter((x) => x["Ten Hoc Ky"] === semesterMap[semester]);
 
-  return filtered.reduce((acc, row) => {
-    acc.Giỏi += row.TyLe_Gioi;
-    acc.Khá += row.TyLe_Kha;
-    acc["Trung bình"] += row.TyLe_TB;
-    acc.Yếu += row.TyLe_Yeu;
-    return acc;
-  }, { ...initial });
-}, [data, semester]);
+    return filtered.reduce(
+      (acc, row) => {
+        acc["Giỏi"] += row.So_A ?? 0;
 
+        acc["Khá"] += (row["So_B+"] ?? 0) + (row.So_B ?? 0);
+
+        acc["Trung bình"] += (row["So_C+"] ?? 0) + (row.So_C ?? 0);
+
+        acc["Yếu"] += (row["So_D+"] ?? 0) + (row.So_D ?? 0) + (row.So_F ?? 0);
+
+        return acc;
+      },
+      { ...initial }
+    );
+  }, [data, semester]);
 
   const totalPassed = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
 
@@ -144,7 +151,9 @@ const gradeCounts = useMemo(() => {
                 ]}
               />
 
-              <Legend content={(props) => <CustomLegend payload={props.payload} />} />
+              <Legend
+                content={(props) => <CustomLegend payload={props.payload} />}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -158,12 +167,13 @@ const gradeCounts = useMemo(() => {
               onClick={() => setSelectedGradeFilter(item.name)}
               className={`p-3 w-full text-left rounded-lg border-2 transition-all cursor-pointer
                 ${
-                  selectedGradeFilter === item.name || selectedGradeFilter === "all"
+                  selectedGradeFilter === item.name ||
+                  selectedGradeFilter === "all"
                     ? "scale-105 shadow-lg"
                     : "opacity-70"
                 }`}
               style={{
-                borderColor: GRADE_COLORS[item.name] ?? "#999",
+                borderColor: `${GRADE_COLORS[item.name] ?? "#999"}30`,
                 backgroundColor: `${GRADE_COLORS[item.name] ?? "#999"}15`,
               }}
             >
@@ -179,7 +189,8 @@ const gradeCounts = useMemo(() => {
               <p className="text-xs text-slate-600 mt-1">môn học</p>
 
               <p className="text-xs font-semibold mt-2 text-slate-700">
-                {item.percentage}%</p>
+                {item.percentage}%
+              </p>
             </button>
           ))}
         </div>

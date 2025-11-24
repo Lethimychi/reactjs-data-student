@@ -2,7 +2,8 @@
  * Student data normalization and transformation utilities
  */
 
-import { getNumericField, getStringField, normalizeKeyForMatching } from "./dataCalculators";
+import { normalizeKeyForMatching } from "./dataCalculators";
+import { getStudentOverallGpa } from "./student_api";
 
 export type Course = {
   course: string;
@@ -123,7 +124,7 @@ const toCourseArray = (arr: unknown): Course[] => {
 /**
  * Normalize raw student data from API into Student type
  */
-export const normalizeStudent = (raw: unknown): Student => {
+export const normalizeStudent = async (raw: unknown): Promise<Student> => {
   const fallback: Student = {
     id: 0,
     info: { id: "", name: "", class: "", area: "" },
@@ -203,6 +204,8 @@ export const normalizeStudent = (raw: unknown): Student => {
     (r["gpa"] as unknown) ??
     fallback.gpaData;
 
+  console.log("GPA DATA: ", gpaData);
+
   const passRateData =
     (r["passRateData"] as unknown) ??
     (r["pass_rate"] as unknown) ??
@@ -219,12 +222,15 @@ export const normalizeStudent = (raw: unknown): Student => {
     String(r["id"] ?? r["mssv"] ?? r["MaSinhVien"] ?? fallback.id)
   );
 
+  const gpA = await getStudentOverallGpa();
+  console.log("Overall GPA fetched:", gpA);
   const result: Student = {
     id: Number.isNaN(parsedId) ? fallback.id : parsedId,
     info,
-    overallGPA:
-      Number(r["overallGPA"] ?? r["overall_gpa"] ?? fallback.overallGPA) || 0,
-    gpaData: Array.isArray(gpaData) ? (gpaData as SemesterGPA[]) : fallback.gpaData,
+    overallGPA: Number(gpA?.GPA_ToanKhoa ?? 0),
+    gpaData: Array.isArray(gpaData)
+      ? (gpaData as SemesterGPA[])
+      : fallback.gpaData,
     passRateData: Array.isArray(passRateData)
       ? (passRateData as PassRate[])
       : fallback.passRateData,
