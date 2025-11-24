@@ -13,7 +13,6 @@ import {
   YAxis,
 } from "recharts";
 import { loadHighestLowestData } from "../../../utils/score/handler_highes_lowest";
-import { COLORS } from "../../../utils/config/colors";
 
 // -------------------------
 // TYPE CHUẨN – KHÔNG ANY
