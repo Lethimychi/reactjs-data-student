@@ -1,10 +1,11 @@
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { MoreDotIcon } from "../../icons";
+import { COLORS } from "../../utils/colors";
 
 export default function MonthlySalesChart() {
   const options: ApexOptions = {
-    colors: ["#3B82F6"],
+    colors: [COLORS[1]],
     chart: {
       fontFamily: "Inter, sans-serif",
       type: "bar",

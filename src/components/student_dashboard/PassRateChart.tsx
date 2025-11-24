@@ -6,12 +6,12 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { Target } from "lucide-react";
 import { Course } from "../../utils/studentNormalizers";
 import { calculatePassRateStats } from "../../utils/dataCalculators";
+import { COLORS } from "../../utils/colors";
 
 interface PassRateChartProps {
   semesters: Array<{ id: number; name: string }>;
@@ -37,23 +37,21 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
   });
 
   return (
-    <div className="card-modern p-6 w-full">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0]">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-50 rounded-xl">
+          <div className="p-2 bg-green-50 rounded-lg">
             <Target className="w-6 h-6 text-green-600" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">
+          <h2 className="text-xl font-semibold text-[#1E293B]">
             Tỷ lệ Đậu/Rớt theo tín chỉ
           </h2>
         </div>
-        <div className="bg-gradient-to-br  from-blue-500  to-emerald-50 px-6 py-4 rounded-xl border border-green-100">
-          <div className="text-sm font-medium text-white mb-1">
+        <div className="bg-[#3B82F6] px-5 py-3 rounded-lg text-white text-right">
+          <div className="text-xs font-medium opacity-90">
             Tỷ lệ qua môn toàn khóa
           </div>
-          <div className="text-3xl font-bold text-white">
-            {overallPassRate}%
-          </div>
+          <div className="text-2xl font-bold mt-1">{overallPassRate}%</div>
         </div>
       </div>
 
@@ -65,23 +63,23 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
           barGap={0}
           layout="horizontal"
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
+          <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" opacity={0.5} />
           <XAxis
             dataKey="semester"
-            stroke="#64748b"
+            stroke="#64748B"
             tick={{ fontSize: 12 }}
             tickLine={false}
           />
-          <YAxis stroke="#64748b" tick={{ fontSize: 12 }} tickLine={false} />
+          <YAxis stroke="#64748B" tick={{ fontSize: 12 }} tickLine={false} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#fff",
+              background: "#fff",
+              borderRadius: 10,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               border: "none",
-              borderRadius: "12px",
-              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-              padding: "12px 16px",
+              color: "#1E293B",
             }}
-            labelStyle={{ fontWeight: "600", fontSize: "13px" }}
+            labelStyle={{ fontWeight: 600 }}
             formatter={(
               value: number,
               name: string,
@@ -90,24 +88,22 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
               const total = props.payload?.totalCredits ?? 0;
               const percentage =
                 total > 0 ? ((value / total) * 100).toFixed(1) : "0";
-              if (name === "Đậu") {
+              if (name === "Đậu")
                 return [`${value} tín chỉ (${percentage}%)`, "Đậu"];
-              }
               return [`${value} tín chỉ (${percentage}%)`, "Rớt"];
             }}
             labelFormatter={(label) => `Học kỳ: ${label}`}
           />
-          <Legend wrapperStyle={{ paddingTop: "16px" }} iconType="circle" />
           <Bar
             dataKey="passedCredits"
-            fill="#4ade80"
+            fill={COLORS[1]}
             barSize={40}
             name="Đậu"
             radius={[6, 6, 0, 0]}
           />
           <Bar
             dataKey="failedCredits"
-            fill="#f87171"
+            fill={COLORS[2]}
             name="Rớt"
             barSize={40}
             radius={[6, 6, 0, 0]}

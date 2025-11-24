@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { fetchGradeDistribution } from "../../utils/ClassLecturerApi";
-
-const COLORS = [
-  "#1970fbff",
-  "#3B82F6",
-  "#60A5FA",
-  "#93C5FD",
-  "rgba(165, 201, 249, 1)",
-];
+import { COLORS } from "../../utils/colors";
 
 export default function GradeDistributionChart({
   className,

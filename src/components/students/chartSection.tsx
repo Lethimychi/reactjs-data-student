@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 // import React from "react";
 
 import getStudentInfo from "../../utils/student_api";
+import { COLORS as PALETTE } from "../../utils/colors";
 import { useEffect, useState } from "react";
 
 // Local state will hold the students fetched from API (direct call)
@@ -138,11 +139,11 @@ const ChartsSection: React.FC = () => {
     percentage: totalPassed ? ((value / totalPassed) * 100).toFixed(1) : "0",
   }));
 
-  const COLORS = {
-    Giỏi: "#10b981",
-    Khá: "#3b82f6",
-    "Trung bình": "#f59e0b",
-    Yếu: "#ef4444",
+  const COLORS: Record<string, string> = {
+    Giỏi: PALETTE[1],
+    Khá: PALETTE[2],
+    "Trung bình": PALETTE[3],
+    Yếu: PALETTE[4],
   };
 
   return (
@@ -190,9 +191,9 @@ const ChartsSection: React.FC = () => {
                     name === "gpa" ? v.toFixed(2) : v
                   }
                 />
-                <Scatter data={correlationData} fill="#3b82f6">
+                <Scatter data={correlationData} fill={PALETTE[1]}>
                   {correlationData.map((_, i) => (
-                    <Cell key={i} fill="#3b82f6" opacity={0.7} />
+                    <Cell key={i} fill={PALETTE[1]} opacity={0.7} />
                   ))}
                 </Scatter>
               </ScatterChart>

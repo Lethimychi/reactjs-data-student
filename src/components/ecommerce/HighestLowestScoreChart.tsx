@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { COLORS } from "../../utils/colors";
 import {
   fetchExtremeFailRateSubjects,
   ExtremeFailRateSubjectsResult,
@@ -121,7 +122,11 @@ export default function HighestLowestScoreChart({
   const hasData = !!(highest || lowest);
 
   return (
-    <div className={className ?? "rounded-2xl bg-white shadow-md shadow-slate-200 p-6"}>
+    <div
+      className={
+        className ?? "rounded-2xl bg-white shadow-md shadow-slate-200 p-6"
+      }
+    >
       <h4 className="text-lg font-semibold text-slate-800 mb-1">
         Môn học có tỷ lệ rớt cao nhất và thấp nhất
       </h4>
@@ -165,8 +170,8 @@ export default function HighestLowestScoreChart({
                 }}
                 content={<CustomTooltip />}
               />
-              <Bar dataKey="highest" fill="#3B82F6" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="lowest" fill="#60A5FA" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="highest" fill={COLORS[1]} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="lowest" fill={COLORS[2]} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

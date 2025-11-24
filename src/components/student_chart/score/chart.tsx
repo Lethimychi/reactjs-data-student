@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { COLORS } from "../../../utils/colors";
 import { loadHighestLowestData } from "../../../utils/score/handler_highes_lowest";
 
 // -------------------------
@@ -119,12 +120,12 @@ export function StudentScoreChartHighestLowest() {
   // -------------------------
   return (
     <div className="w-full">
-      <div className=" bg-white rounded-2xl shadow-lg shadow-slate-200/50 p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <Award className="w-6 h-6 text-indigo-600" />
+      <div className="bg-white rounded-2xl shadow-md shadow-slate-200 p-6 border border-[#E2E8F0]">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <Award className="w-6 h-6 text-[#3B82F6]" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">
+          <h2 className="text-xl font-semibold text-[#1E293B]">
             Hiệu suất theo học kỳ (Cao nhất vs Thấp nhất)
           </h2>
         </div>
@@ -138,19 +139,19 @@ export function StudentScoreChartHighestLowest() {
               barGap={10}
             >
               <CartesianGrid
+                stroke="#E2E8F0"
                 strokeDasharray="3 3"
-                stroke="#e2e8f0"
-                opacity={0.6}
+                opacity={0.5}
               />
               <XAxis
                 dataKey="semester"
-                stroke="#64748b"
+                stroke="#64748B"
                 tick={{ fontSize: 12 }}
                 tickLine={false}
               />
               <YAxis
                 domain={[0, yMax]}
-                stroke="#64748b"
+                stroke="#64748B"
                 tick={{ fontSize: 12 }}
                 tickLine={false}
               />
@@ -168,11 +169,11 @@ export function StudentScoreChartHighestLowest() {
                 dataKey="highestScore"
                 name="Cao nhất"
                 barSize={20}
-                fill="#22C55E"
+                fill={COLORS[1]}
                 radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`hi-${idx}`} fill="#22C55E" />
+                  <Cell key={`hi-${idx}`} fill={COLORS[1]} />
                 ))}
               </Bar>
 
@@ -180,11 +181,11 @@ export function StudentScoreChartHighestLowest() {
                 dataKey="lowestScore"
                 name="Thấp nhất"
                 barSize={20}
-                fill="#EF4444"
+                fill={COLORS[2]}
                 radius={[4, 4, 0, 0]}
               >
                 {displayData.map((_, idx) => (
-                  <Cell key={`low-${idx}`} fill="#EF4444" />
+                  <Cell key={`low-${idx}`} fill={COLORS[2]} />
                 ))}
               </Bar>
             </BarChart>

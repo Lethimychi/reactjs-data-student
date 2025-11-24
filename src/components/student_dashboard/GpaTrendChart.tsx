@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -41,15 +40,12 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 card-modern p-8">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-
-        <div className="relative flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl">
-            <TrendingUp className="w-6 h-6 text-blue-600" />
+      <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-md shadow-slate-200 border border-[#E2E8F0] relative">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <TrendingUp className="w-6 h-6 text-[#3B82F6]" />
           </div>
-          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+          <h2 className="text-xl font-semibold text-[#1E293B]">
             Xu hướng GPA theo học kỳ
           </h2>
         </div>
@@ -65,92 +61,68 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
             }}
           >
             <CartesianGrid
+              stroke="#E2E8F0"
               strokeDasharray="3 3"
-              stroke="#e0e7ff"
-              opacity={0.4}
+              opacity={0.5}
             />
             <XAxis
               dataKey="semester"
-              stroke="#94a3b8"
-              tick={{ fontSize: 12, fontWeight: 500 }}
-              padding={{ left: 0, right: 0 }}
-              interval="preserveStartEnd"
+              stroke="#64748B"
+              tick={{ fontSize: 12 }}
+              interval={0}
               tickLine={false}
-              scale="point"
             />
             <YAxis
               domain={[0, dynamicYMax]}
-              stroke="#94a3b8"
-              tick={{ fontSize: 12, fontWeight: 500 }}
+              stroke="#64748B"
+              tick={{ fontSize: 12 }}
               tickLine={false}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#fff",
+                background: "#fff",
+                borderRadius: 10,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                 border: "none",
-                borderRadius: "16px",
-                boxShadow: "0 10px 25px -5px rgb(59, 130, 246, 0.2)",
-                padding: "14px 18px",
+                color: "#1E293B",
               }}
-              labelStyle={{
-                fontWeight: "700",
-                color: "#1e293b",
-                fontSize: "14px",
-              }}
-              formatter={(
-                value: number,
-                _name: string,
-                props: { payload?: { rank?: string } }
-              ) => [
-                `${value.toFixed(2)} (${props.payload?.rank ?? ""})`,
+              labelStyle={{ fontWeight: 600 }}
+              formatter={(value: number) => [
+                `${Number(value).toFixed(2)}`,
                 "GPA",
               ]}
             />
-            <Legend wrapperStyle={{ paddingTop: "16px" }} iconType="circle" />
             <Line
               type="monotone"
               dataKey="gpa"
               stroke="#3B82F6"
               strokeWidth={3}
-              dot={{
-                fill: "#3B82F6",
-                r: 6,
-                strokeWidth: 2,
-                stroke: "#fff",
-              }}
-              activeDot={{ r: 8, fill: "#1e40af", strokeWidth: 2 }}
-              name="GPA"
-              isAnimationActive={true}
+              dot={{ r: 6, fill: "#3B82F6", stroke: "#1E40AF", strokeWidth: 2 }}
+              activeDot={{ r: 8 }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="card-modern p-8">
-        {/* Decorative elements */}
-        <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-100/10 rounded-full -mr-20 -mb-20 blur-2xl" />
-
-        <div className="relative flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl">
-            <Award className="w-6 h-6 text-indigo-600" />
+      <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 border border-[#E2E8F0] relative">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <Award className="w-6 h-6 text-[#3B82F6]" />
           </div>
-          <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-700 bg-clip-text text-transparent">
+          <h2 className="text-xl font-semibold text-[#1E293B]">
             GPA Trung bình
           </h2>
         </div>
 
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
+            <defs>
+              {/* three-tone blue palette could be used when pie has more slices; keep primary + light bg */}
+            </defs>
             <Pie
               data={[
-                {
-                  name: "GPA đạt được",
-                  value: overallGPA,
-                },
-                {
-                  name: "Còn lại",
-                  value: 10 - overallGPA,
-                },
+                { name: "GPA đạt được", value: overallGPA },
+                { name: "Còn lại", value: 10 - overallGPA },
               ]}
               cx="50%"
               cy="50%"
@@ -160,31 +132,31 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
               dataKey="value"
             >
               <Cell fill="#3B82F6" />
-              <Cell fill="#E0E7FF" />
+              <Cell fill="#93C5FD" />
             </Pie>
             <Tooltip
-              formatter={(value: number | string, name: string) => [
+              formatter={(value: number | string) => [
                 `${Number(value).toFixed(2)} / 10.0`,
-                name,
+                "GPA",
               ]}
               contentStyle={{
-                backgroundColor: "#fff",
+                background: "#fff",
+                borderRadius: 10,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                 border: "none",
-                borderRadius: "16px",
-                boxShadow: "0 10px 25px -5px rgb(59, 130, 246, 0.2)",
-                padding: "14px 18px",
+                color: "#1E293B",
               }}
             />
           </PieChart>
         </ResponsiveContainer>
 
         <div className="text-center mt-6 relative">
-          <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <div className="text-3xl font-bold text-[#1E293B]">
             {overallGPA.toFixed(2)}/10.0
           </div>
-          <div className="text-sm text-slate-600 mt-2 font-semibold">
+          <div className="text-sm text-[#64748B] mt-2 font-semibold">
             Học lực:{" "}
-            <span className="text-blue-600">
+            <span className="text-[#3B82F6]">
               {overallRank ?? getGradeRank(overallGPA)}
             </span>
           </div>

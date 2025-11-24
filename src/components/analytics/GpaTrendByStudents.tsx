@@ -9,6 +9,7 @@ import {
   Tooltip,
   // Legend not used but kept for future extension
 } from "recharts";
+import { COLORS } from "../../utils/colors";
 import { getStudentGpaBySemester, GpaApiRecord } from "../../utils/student_api";
 
 export default function GpaTrendByStudents({
@@ -168,8 +169,8 @@ export default function GpaTrendByStudents({
         >
           <defs>
             <linearGradient id="gpaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.5} />
-              <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
+              <stop offset="0%" stopColor={COLORS[1]} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={COLORS[1]} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -203,10 +204,10 @@ export default function GpaTrendByStudents({
           <Area
             type="monotone"
             dataKey="gpa"
-            stroke="#3B82F6"
+            stroke={COLORS[1]}
             strokeWidth={3}
             fill="url(#gpaGradient)"
-            dot={{ stroke: "#3B82F6", strokeWidth: 2, r: 4, fill: "#fff" }}
+            dot={{ stroke: COLORS[1], strokeWidth: 2, r: 4, fill: "#fff" }}
             activeDot={{ r: 5 }}
           />
         </AreaChart>

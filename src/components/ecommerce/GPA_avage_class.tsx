@@ -7,6 +7,7 @@ import {
   fetchStudentGPAs,
   StudentGPARecord,
 } from "../../utils/ClassLecturerApi";
+import { COLORS } from "../../utils/colors";
 
 interface GPAAverageClassProps {
   selectedClassName?: string | null;
@@ -70,7 +71,7 @@ export default function GPAAverageClass({
   const displayValue = gpa !== null ? gpa.toFixed(2) : "--";
 
   const options: ApexOptions = {
-    colors: ["#3B82F6"],
+    colors: [COLORS[1]],
     chart: {
       fontFamily: "Inter, sans-serif",
       type: "radialBar",
@@ -99,7 +100,7 @@ export default function GPAAverageClass({
         },
       },
     },
-    fill: { type: "solid", colors: ["#3B82F6"] },
+    fill: { type: "solid", colors: [COLORS[1]] },
     stroke: { lineCap: "round" },
     labels: ["GPA"],
   };

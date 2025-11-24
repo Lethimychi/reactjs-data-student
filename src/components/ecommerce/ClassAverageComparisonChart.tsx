@@ -10,6 +10,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { COLORS } from "../../utils/colors";
 import {
   fetchCourseAverages,
   CourseAverageRecord,
@@ -185,15 +186,15 @@ export default function ClassAverageComparisonChart({
               <Bar
                 dataKey="student"
                 barSize={16}
-                fill="#3B82F6"
+                fill={COLORS[1]}
                 radius={[6, 6, 0, 0]}
               />
               <Line
                 type="monotone"
                 dataKey="average"
-                stroke="#60A5FA"
+                stroke={COLORS[2]}
                 strokeWidth={3}
-                dot={{ fill: "#60A5FA", r: 3 }}
+                dot={{ fill: COLORS[2], r: 3 }}
                 activeDot={{ r: 7 }}
               />
             </ComposedChart>

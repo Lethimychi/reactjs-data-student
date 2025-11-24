@@ -8,6 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { COLORS } from "../../utils/colors";
 import { fetchGpaConductByClass } from "../../utils/ClassLecturerApi";
 
 export default function GPAConductScatter({
@@ -218,9 +219,9 @@ export default function GPAConductScatter({
               <Scatter
                 name="Sinh viên"
                 data={data}
-                fill="#1970fbff"
+                fill={COLORS[0]}
                 shape={(props: { cx?: number; cy?: number }) => (
-                  <circle cx={props.cx} cy={props.cy} r={6} fill="#1970fbff" />
+                  <circle cx={props.cx} cy={props.cy} r={6} fill={COLORS[0]} />
                 )}
               />
             </ScatterChart>

@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { TrendingUp } from "lucide-react";
@@ -22,18 +21,18 @@ export const TrainingScoreChart: React.FC<TrainingScoreChartProps> = ({
   // Show placeholder if no data
   if (!trainingScoreData || trainingScoreData.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 w-full">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-indigo-50 rounded-xl">
-            <TrendingUp className="w-6 h-6 text-indigo-600" />
+      <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0]">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <TrendingUp className="w-6 h-6 text-[#3B82F6]" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">
+          <h2 className="text-xl font-semibold text-[#1E293B]">
             Điểm rèn luyện qua các học kỳ
           </h2>
         </div>
-        <div className="p-6 text-center text-slate-500">
+        <div className="p-4 text-center text-[#64748B]">
           Không có dữ liệu điểm rèn luyện để hiển thị.
-          <div className="mt-3 text-xs text-slate-400">
+          <div className="mt-2 text-xs text-[#94A3B8]">
             (Nếu bạn đang dùng API thật, kiểm tra console để xem payload.)
           </div>
         </div>
@@ -47,12 +46,12 @@ export const TrainingScoreChart: React.FC<TrainingScoreChartProps> = ({
   const dynamicDrlMax = maxDrl < 60 ? 60 : Math.ceil(maxDrl / 10) * 10;
 
   return (
-    <div className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/50 w-full">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-indigo-50 rounded-xl">
-          <TrendingUp className="w-6 h-6 text-indigo-600" />
+    <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0]">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-blue-50 rounded-lg">
+          <TrendingUp className="w-6 h-6 text-[#3B82F6]" />
         </div>
-        <h2 className="text-xl font-bold text-slate-800">
+        <h2 className="text-xl font-semibold text-[#1E293B]">
           Điểm rèn luyện qua các học kỳ
         </h2>
       </div>
@@ -62,53 +61,40 @@ export const TrainingScoreChart: React.FC<TrainingScoreChartProps> = ({
           data={trainingScoreData}
           margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
         >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="#e2e8f0"
-            opacity={0.6}
-          />
+          <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" opacity={0.5} />
           <XAxis
             dataKey="semester"
-            stroke="#64748b"
+            stroke="#64748B"
             tick={{ fontSize: 12 }}
             tickLine={false}
           />
           <YAxis
             domain={[0, dynamicDrlMax]}
-            stroke="#64748b"
+            stroke="#64748B"
             tick={{ fontSize: 12 }}
             tickLine={false}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#fff",
+              background: "#fff",
+              borderRadius: 10,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               border: "none",
-              borderRadius: "12px",
-              boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-              padding: "12px 16px",
+              color: "#1E293B",
             }}
-            labelStyle={{ fontWeight: "600", fontSize: "13px" }}
+            labelStyle={{ fontWeight: 600 }}
             formatter={(value: number) => [
               `${Number(value).toFixed(1)} điểm`,
               "Điểm rèn luyện",
             ]}
           />
-          <Legend
-            wrapperStyle={{ paddingTop: "16px" }}
-            iconType="circle"
-          />
           <Line
             type="monotone"
             dataKey="score"
-            stroke="#6366F1"
+            stroke="#3B82F6"
             strokeWidth={3}
-            dot={{
-              r: 5,
-              fill: "#6366F1",
-              stroke: "#fff",
-              strokeWidth: 2,
-            }}
-            activeDot={{ r: 7, fill: "#4F46E5" }}
+            dot={{ r: 5, fill: "#3B82F6", stroke: "#1E40AF", strokeWidth: 2 }}
+            activeDot={{ r: 7 }}
             name="Điểm rèn luyện"
           />
         </LineChart>

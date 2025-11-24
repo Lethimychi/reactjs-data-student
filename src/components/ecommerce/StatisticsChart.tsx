@@ -6,6 +6,7 @@ import {
   StudentGPARecord,
   fetchStudentsByClass,
 } from "../../utils/ClassLecturerApi";
+import { COLORS } from "../../utils/colors";
 
 interface StatisticsChartProps {
   selectedClassName?: string | null;
@@ -106,7 +107,7 @@ export default function StatisticsChart({
 
   const options: ApexOptions = {
     legend: { show: false },
-    colors: ["#3B82F6"],
+    colors: [COLORS[1]],
     chart: {
       fontFamily: "Inter, sans-serif",
       height: 310,
@@ -121,8 +122,8 @@ export default function StatisticsChart({
         opacityFrom: 0.35,
         opacityTo: 0,
         colorStops: [
-          { offset: 0, color: "#3B82F6", opacity: 0.35 },
-          { offset: 100, color: "#3B82F6", opacity: 0 },
+          { offset: 0, color: COLORS[1], opacity: 0.35 },
+          { offset: 100, color: COLORS[1], opacity: 0 },
         ],
       },
     },

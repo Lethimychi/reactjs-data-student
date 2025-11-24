@@ -3,7 +3,7 @@
  * Consolidates 6 useEffect hooks into organized, reusable hooks
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Course,
   createEmptyStudent,

@@ -7,6 +7,7 @@ import {
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import { ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
+import { COLORS } from "../../utils/colors";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -388,7 +389,7 @@ export default function RecentOrders({
                                     <Line
                                       type="monotone"
                                       dataKey="gpa"
-                                      stroke="#3B82F6"
+                                      stroke={COLORS[1]}
                                       strokeWidth={2}
                                       dot={{ r: 2 }}
                                     />

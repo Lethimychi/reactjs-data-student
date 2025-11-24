@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { COLORS } from "../../utils/colors";
 
 export default function PassFailRateChart({
   className,
@@ -47,7 +48,7 @@ export default function PassFailRateChart({
             <Bar
               dataKey="passed"
               stackId="a"
-              fill="#3B82F6"
+              fill={COLORS[1]}
               radius={[6, 6, 0, 0]}
             />
             <Bar
