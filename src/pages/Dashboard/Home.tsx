@@ -7,7 +7,8 @@ import ClassAverageComparisonChart from "../../components/ecommerce/ClassAverage
 //import DemographicCard from "../../components/ecommerce/DemographicCard";
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 import GPAAvageClass from "../../components/ecommerce/GPA_avage_class";
-import HighestLowestScoreChart from "../../components/ecommerce/HighestLowestScoreChart";
+import HighestLowestScoreChart from "../../components/ecommerce/HighestLowestScoreChart"; // legacy (not used now)
+
 //import PassFailRateChart from "../../components/ecommerce/PassFailRateChart";
 import RecentOrders from "../../components/ecommerce/RecentOrders";
 import StatisticsChart from "../../components/ecommerce/StatisticsChart";
@@ -21,6 +22,7 @@ import {
   fetchAllClasses,
   fetchStudentCount,
 } from "../../utils/ClassLecturerApi";
+// Note: dashboard data is loaded per-component via React Query to enable dedupe by queryKey
 
 type LoadingState = "idle" | "loading" | "error" | "success";
 
@@ -36,8 +38,8 @@ export default function Home(): JSX.Element {
   );
 
   // Mặc định: lớp & học kỳ khi khởi tạo
-  const DEFAULT_CLASS_NAME = "12DHTH11";
-  const DEFAULT_SEMESTER_NAME = "HK1 - 2024-2025";
+  const DEFAULT_CLASS_NAME = "14DHBM02";
+  const DEFAULT_SEMESTER_NAME = "HK2 - 2024-2025";
   const [semesterStatus, setSemesterStatus] = useState<LoadingState>("idle");
   const [classStatus, setClassStatus] = useState<LoadingState>("idle");
   const [semesterError, setSemesterError] = useState<string | null>(null);
@@ -259,15 +261,46 @@ export default function Home(): JSX.Element {
             </div> */}
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <GradeDistributionChart />
+              <GradeDistributionChart
+                selectedClassName={selectedClassName ?? undefined}
+                selectedSemesterDisplayName={
+                  semesters.find((s) => s.id === selectedSemesterId)?.name ??
+                  undefined
+                }
+              />
               {/* <PassFailRateChart /> */}
-              <AcademicPerformanceRate className="w-full" />
-              <HighestLowestScoreChart />
+              <AcademicPerformanceRate
+                className="w-full"
+                selectedClassName={selectedClassName ?? undefined}
+                selectedSemesterDisplayName={
+                  semesters.find((s) => s.id === selectedSemesterId)?.name ??
+                  undefined
+                }
+              />
+              <HighestLowestScoreChart
+                selectedClassName={selectedClassName ?? undefined}
+                selectedSemesterDisplayName={
+                  semesters.find((s) => s.id === selectedSemesterId)?.name ??
+                  undefined
+                }
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <ClassAverageComparisonChart />
-              <GPA_Conduct />
+              <ClassAverageComparisonChart
+                selectedClassName={selectedClassName ?? undefined}
+                selectedSemesterDisplayName={
+                  semesters.find((s) => s.id === selectedSemesterId)?.name ??
+                  undefined
+                }
+              />
+              <GPA_Conduct
+                selectedClassName={selectedClassName ?? undefined}
+                selectedSemesterDisplayName={
+                  semesters.find((s) => s.id === selectedSemesterId)?.name ??
+                  undefined
+                }
+              />
             </div>
           </section>
         </div>
@@ -280,7 +313,7 @@ export default function Home(): JSX.Element {
         </div> */}
 
         <div className="col-span-12 xl:col-span-12">
-          <RecentOrders />
+          <RecentOrders selectedClassName={selectedClassName ?? undefined} />
         </div>
       </div>
     </>

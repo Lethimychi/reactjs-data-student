@@ -6,69 +6,135 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
+import { ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { fetchStudentsByClass } from "../../utils/ClassLecturerApi";
 
-// Define the TypeScript interface for the table rows
-interface Product {
-  id: number; // Unique identifier for each product
-  name: string; // Product name
-  variants: string; // Number of variants (e.g., "1 Variant", "2 Variants")
-  category: string; // Category of the product
-  price: string; // Price of the product (as a string with currency symbol)
-  // status: string; // Status of the product
-  image: string; // URL or path to the product image
-  status: "Delivered" | "Pending" | "Canceled"; // Status of the product
-}
+// Note: old mock tableData removed — component now fetches real students by class
 
-// Define the table data using the interface
-const tableData: Product[] = [
-  {
-    id: 1,
-    name: "MacBook Pro 13”",
-    variants: "2 Variants",
-    category: "Laptop",
-    price: "$2399.00",
-    status: "Delivered",
-    image: "/images/product/product-01.jpg", // Replace with actual image URL
-  },
-  {
-    id: 2,
-    name: "Apple Watch Ultra",
-    variants: "1 Variant",
-    category: "Watch",
-    price: "$879.00",
-    status: "Pending",
-    image: "/images/product/product-02.jpg", // Replace with actual image URL
-  },
-  {
-    id: 3,
-    name: "iPhone 15 Pro Max",
-    variants: "2 Variants",
-    category: "SmartPhone",
-    price: "$1869.00",
-    status: "Delivered",
-    image: "/images/product/product-03.jpg", // Replace with actual image URL
-  },
-  {
-    id: 4,
-    name: "iPad Pro 3rd Gen",
-    variants: "2 Variants",
-    category: "Electronics",
-    price: "$1699.00",
-    status: "Canceled",
-    image: "/images/product/product-04.jpg", // Replace with actual image URL
-  },
-  {
-    id: 5,
-    name: "AirPods Pro 2nd Gen",
-    variants: "1 Variant",
-    category: "Accessories",
-    price: "$240.00",
-    status: "Delivered",
-    image: "/images/product/product-05.jpg", // Replace with actual image URL
-  },
-];
+export default function RecentOrders({
+  selectedClassName,
+}: {
+  selectedClassName?: string | null;
+}) {
+  const [students, setStudents] = useState<Array<
+    Record<string, unknown>
+  > | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 5; // show 5 students per page
+  const studentsQuery = useQuery({
+    queryKey: ["studentsByClass", selectedClassName],
+    queryFn: async () => fetchStudentsByClass(selectedClassName!),
+    enabled: !!selectedClassName,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  });
+  const navigate = useNavigate();
 
-export default function RecentOrders() {
+  useEffect(() => {
+    if (!selectedClassName) {
+      setStudents(null);
+      return;
+    }
+    if (studentsQuery.isLoading) return;
+    if (studentsQuery.isError) {
+      console.error(studentsQuery.error);
+      setStudents(null);
+      return;
+    }
+
+    const rows = (studentsQuery.data ?? []) as Array<Record<string, unknown>>;
+
+    // Group rows by student id to build per-student GPA trend across semesters
+    const byId = new Map<
+      string,
+      {
+        base: Record<string, unknown>;
+        trend: { semester: string; gpa: number }[];
+      }
+    >();
+
+    const toNumber = (v: unknown) => {
+      if (typeof v === "number") return v;
+      const n = Number(String(v ?? "").trim());
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const makeSemesterLabel = (r: Record<string, unknown>) => {
+      const term = (r["Ten Hoc Ky"] ?? r["Ma Hoc Ky"] ?? "").toString().trim();
+      const year = (r["Ten Nam Hoc"] ?? "").toString().trim();
+      if (term && year) return `${term} - ${year}`;
+      if (term) return term;
+      if (year) return year;
+      return "HK?";
+    };
+
+    for (const r of rows) {
+      const id = String(
+        r["Ma Sinh Vien"] ?? r["MaSV"] ?? r["MSSV"] ?? r["MaSinhVien"] ?? ""
+      ).trim();
+      if (!id) continue;
+
+      const gpaRaw =
+        r["GPA_HocKy"] ?? r["GPA"] ?? r["gpa"] ?? r["DiemTB"] ?? r["Diem"];
+      const gpa = toNumber(gpaRaw);
+      const semesterLabel = makeSemesterLabel(r);
+
+      if (!byId.has(id)) {
+        // clone base fields (keep first encountered row as base)
+        const base: Record<string, unknown> = { ...r };
+        // ensure base contains student id and name
+        base["Ma Sinh Vien"] = id;
+        base["Ho Ten"] =
+          base["Ho Ten"] ?? base["Ten Sinh Vien"] ?? base["hoTen"] ?? "";
+        byId.set(id, { base, trend: [] });
+      }
+
+      const entry = byId.get(id)!;
+      entry.trend.push({ semester: semesterLabel, gpa });
+    }
+
+    // Convert map to array, sort trends by year+term (if parseable)
+    const studentsArr: Array<Record<string, unknown>> = [];
+    const parseSortKey = (label: string) => {
+      // try to extract year start and term number
+      const yearMatch = /([0-9]{4})/.exec(label);
+      const year = yearMatch ? Number(yearMatch[1]) : 0;
+      const termMatch = /(?:HK[_\s]?(\d+)|Học kỳ\s*(\d+)|T(\d+))/i.exec(label);
+      const term = termMatch
+        ? Number(termMatch[1] ?? termMatch[2] ?? termMatch[3])
+        : 0;
+      return year * 10 + term;
+    };
+
+    for (const [, v] of byId) {
+      v.trend.sort(
+        (a, b) => parseSortKey(a.semester) - parseSortKey(b.semester)
+      );
+      const merged: Record<string, unknown> = { ...v.base };
+      merged["GpaTrend"] = v.trend;
+      studentsArr.push(merged);
+    }
+
+    // sort students by name for stable order
+    studentsArr.sort((a, b) => {
+      const an = String(a["Ho Ten"] ?? a["HoTen"] ?? "").trim();
+      const bn = String(b["Ho Ten"] ?? b["HoTen"] ?? "").trim();
+      return an.localeCompare(bn, "vi", { sensitivity: "base" });
+    });
+
+    setStudents(studentsArr);
+    setPage(1);
+  }, [
+    selectedClassName,
+    studentsQuery.isLoading,
+    studentsQuery.isError,
+    studentsQuery.data,
+    studentsQuery.error,
+  ]);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -78,49 +144,7 @@ export default function RecentOrders() {
           </h3>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            <svg
-              className="stroke-current fill-white dark:fill-gray-800"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2.29004 5.90393H17.7067"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M17.7075 14.0961H2.29085"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12.0826 3.33331C13.5024 3.33331 14.6534 4.48431 14.6534 5.90414C14.6534 7.32398 13.5024 8.47498 12.0826 8.47498C10.6627 8.47498 9.51172 7.32398 9.51172 5.90415C9.51172 4.48432 10.6627 3.33331 12.0826 3.33331Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-              <path
-                d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-            </svg>
-            Filter
-          </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            See all
-          </button>
-        </div>
+        {/* filter buttons omitted */}
       </div>
       <div className="max-w-full overflow-x-auto">
         <Table>
@@ -144,7 +168,7 @@ export default function RecentOrders() {
                 isHeader
                 className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
               >
-                Xu hướng gpa
+                Xu hướng GPA
               </TableCell>
             </TableRow>
           </TableHeader>
@@ -152,40 +176,283 @@ export default function RecentOrders() {
           {/* Table Body */}
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((product) => (
-              <TableRow key={product.id} className="">
-                <TableCell className="py-3 w-80">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="font-medium text-gray-800 text-theme-sm dark:text-white/120">
-                        {product.name}
-                      </p>
-                      <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                        {product.variants}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400/120 w-120">
-                  {product.price}
-                </TableCell>
-
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      product.status === "Delivered"
-                        ? "success"
-                        : product.status === "Pending"
-                        ? "warning"
-                        : "error"
-                    }
-                  >
-                    {product.status}
-                  </Badge>
+            {studentsQuery.isLoading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="py-6 text-center text-sm text-gray-500"
+                >
+                  Đang tải...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : studentsQuery.isError ? (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="py-6 text-center text-sm text-red-600"
+                >
+                  {String(
+                    studentsQuery.error ?? "Không thể tải danh sách sinh viên"
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : students && students.length ? (
+              (() => {
+                // Sort students by name (A -> Z) so name stays paired with its student id
+                const sorted = students.slice().sort((a, b) => {
+                  const an = String(a["Ho Ten"] ?? a["HoTen"] ?? "").trim();
+                  const bn = String(b["Ho Ten"] ?? b["HoTen"] ?? "").trim();
+                  return an.localeCompare(bn, "vi", { sensitivity: "base" });
+                });
+
+                const total = sorted.length;
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                const currentPage = Math.min(Math.max(1, page), totalPages);
+                const start = (currentPage - 1) * pageSize;
+                const paginated = sorted.slice(start, start + pageSize);
+                return (
+                  <>
+                    {paginated.map((s, idx) => (
+                      <TableRow
+                        key={
+                          (s["Ma Sinh Vien"] as string) || `r-${start + idx}`
+                        }
+                        className=""
+                      >
+                        <TableCell className="py-3 w-80">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <button
+                                onClick={() => {
+                                  const id = String(
+                                    s["Ma Sinh Vien"] ??
+                                      s["MaSV"] ??
+                                      s["MSSV"] ??
+                                      s["MaSinhVien"] ??
+                                      ""
+                                  ).trim();
+                                  if (id)
+                                    navigate(
+                                      `/ecommerce-analytics?masv=${encodeURIComponent(
+                                        id
+                                      )}`
+                                    );
+                                }}
+                                className="font-medium text-slate-800 hover:underline"
+                                title="Xem chi tiết"
+                              >
+                                {(s["Ma Sinh Vien"] as string) || "-"}
+                              </button>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400/120 w-80">
+                          {/* show class or other info if available */}
+                          <button
+                            onClick={() => {
+                              const id = String(
+                                s["Ma Sinh Vien"] ??
+                                  s["MaSV"] ??
+                                  s["MSSV"] ??
+                                  s["MaSinhVien"] ??
+                                  ""
+                              ).trim();
+                              if (id)
+                                navigate(
+                                  `/ecommerce-analytics?masv=${encodeURIComponent(
+                                    id
+                                  )}`
+                                );
+                            }}
+                            className="font-semibold text-left text-slate-800 hover:underline"
+                            title="Xem chi tiết"
+                          >
+                            {(s["Ho Ten"] as string) || "-"}
+                          </button>
+                        </TableCell>
+                        <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                          {(() => {
+                            // Use GpaTrend aggregated from API rows (created in the effect)
+                            const rawTrend = s["GpaTrend"] ?? s["gpaTrend"];
+                            const arr = Array.isArray(rawTrend)
+                              ? (rawTrend as unknown[])
+                              : [];
+                            const trend = arr
+                              .map((t: unknown, i: number) => {
+                                const item =
+                                  (t as Record<string, unknown>) || {};
+                                const semester = String(
+                                  item["semester"] ??
+                                    item["label"] ??
+                                    `HK${i + 1}`
+                                );
+                                const gpa = Number(
+                                  item["gpa"] ??
+                                    item["GPA"] ??
+                                    item["value"] ??
+                                    0
+                                );
+                                return { semester, gpa };
+                              })
+                              .filter((tt) => Number.isFinite(tt.gpa));
+
+                            if (!trend.length) {
+                              return (
+                                <Badge size="sm" color="info">
+                                  -
+                                </Badge>
+                              );
+                            }
+
+                            const SparkTooltip = (props: unknown) => {
+                              // Narrow unknown props safely to avoid `any` usage
+                              if (!props || typeof props !== "object")
+                                return null;
+                              const p = props as {
+                                active?: unknown;
+                                payload?: unknown[];
+                                label?: unknown;
+                              };
+                              const active = Boolean(p.active);
+                              const payload = Array.isArray(p.payload)
+                                ? p.payload
+                                : undefined;
+                              if (!active || !payload || payload.length === 0)
+                                return null;
+
+                              const rawPoint = payload[0];
+                              if (!rawPoint || typeof rawPoint !== "object")
+                                return null;
+                              const point = rawPoint as {
+                                value?: unknown;
+                                payload?: unknown;
+                              };
+
+                              // Extract semester name safely from payload object if present
+                              let semesterLabel = "";
+                              if (
+                                point.payload &&
+                                typeof point.payload === "object"
+                              ) {
+                                const pd = point.payload as Record<
+                                  string,
+                                  unknown
+                                >;
+                                semesterLabel = String(
+                                  pd["semester"] ??
+                                    pd["label"] ??
+                                    pd["name"] ??
+                                    ""
+                                );
+                              }
+
+                              // Resolve numeric gpa value from available places
+                              let rawVal = 0;
+                              if (typeof point.value === "number")
+                                rawVal = point.value;
+                              else if (typeof point.value === "string")
+                                rawVal = Number(point.value);
+                              else if (
+                                point.payload &&
+                                typeof point.payload === "object"
+                              ) {
+                                const pd = point.payload as Record<
+                                  string,
+                                  unknown
+                                >;
+                                const cand =
+                                  pd["gpa"] ?? pd["GPA"] ?? pd["value"];
+                                if (typeof cand === "number") rawVal = cand;
+                                else if (typeof cand === "string")
+                                  rawVal = Number(cand);
+                              }
+
+                              const gpa = Number.isFinite(rawVal) ? rawVal : 0;
+
+                              return (
+                                <div className="bg-white border border-slate-200 text-slate-800 text-xs rounded shadow-lg px-3 py-2">
+                                  <div className="font-medium">
+                                    {semesterLabel || "(Kỳ?)"}
+                                  </div>
+                                  <div className="text-slate-500">
+                                    GPA: {gpa.toFixed(2)}
+                                  </div>
+                                </div>
+                              );
+                            };
+
+                            return (
+                              <div className="w-40 h-12">
+                                <ResponsiveContainer width="100%" height={48}>
+                                  <LineChart data={trend}>
+                                    <Line
+                                      type="monotone"
+                                      dataKey="gpa"
+                                      stroke="#3B82F6"
+                                      strokeWidth={2}
+                                      dot={{ r: 2 }}
+                                    />
+                                    <Tooltip content={SparkTooltip} />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={3} className="py-3">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="text-sm text-slate-500">
+                            Hiển thị {Math.min(start + 1, total)}-
+                            {Math.min(start + pageSize, total)} của {total}
+                          </div>
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={() => setPage((p) => Math.max(1, p - 1))}
+                              disabled={currentPage <= 1}
+                              className={`px-3 py-1 rounded border ${
+                                currentPage <= 1
+                                  ? "border-gray-200 text-gray-400"
+                                  : "border-gray-300 text-gray-700"
+                              } bg-white`}
+                            >
+                              Prev
+                            </button>
+                            <div className="text-sm text-slate-600">
+                              {currentPage} / {totalPages}
+                            </div>
+                            <button
+                              onClick={() =>
+                                setPage((p) => Math.min(totalPages, p + 1))
+                              }
+                              disabled={currentPage >= totalPages}
+                              className={`px-3 py-1 rounded border ${
+                                currentPage >= totalPages
+                                  ? "border-gray-200 text-gray-400"
+                                  : "border-gray-300 text-gray-700"
+                              } bg-white`}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </>
+                );
+              })()
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className="py-6 text-center text-sm text-slate-500"
+                >
+                  Chọn lớp để xem danh sách sinh viên
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
