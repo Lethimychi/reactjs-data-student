@@ -338,10 +338,7 @@ export default function EcommerceAnalytics({
               let displayChange = card.changeLabel ?? "";
               const displayTrend = card.trendDirection;
 
-              if (
-                card.title === "GPA trung bình" ||
-                card.title === "GPA tích lũy"
-              ) {
+              if (card.title === "GPA tích lũy") {
                 // prefer gpaData (fetchStudentAccumulatedGPA)
                 let gpaValue: number | null = null;
                 let rank: string | null = null;
@@ -390,7 +387,7 @@ export default function EcommerceAnalytics({
                   displayChange = rank ? `Học lực: ${rank}` : "";
                 } else {
                   displayValue = "7.0";
-                  displayChange = "";
+                  displayChange = "Toàn khóa";
                 }
               }
 
@@ -465,7 +462,7 @@ export default function EcommerceAnalytics({
               }
 
               if (card.title === "Tỷ lệ qua môn") {
-                let rateStr = "-";
+                let rateStr = "50.00%";
                 try {
                   if (passRateData) {
                     if (
@@ -521,8 +518,9 @@ export default function EcommerceAnalytics({
                   console.debug("parse passRateData failed", e);
                 }
 
-                displayValue = rateStr === "50.00%" ? "" : rateStr;
-                displayChange = displayValue === "" ? "" : "vs toàn khóa";
+                displayValue = rateStr === "50.00%" ? "50.00%" : rateStr;
+                displayChange =
+                  displayValue === "50.00%" ? "50.00%" : "với học kỳ";
               }
 
               return (
