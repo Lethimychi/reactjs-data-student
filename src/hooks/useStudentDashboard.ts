@@ -214,8 +214,8 @@ export const useGpaTrendFetch = () => {
             const ay = Number(String(a.year).split("-")[0] ?? 0);
             const by = Number(String(b.year).split("-")[0] ?? 0);
             if (ay !== by) return ay - by;
-            const an = Number(String(a.semester).replaceAll(/\D/g, "") || 0);
-            const bn = Number(String(b.semester).replaceAll(/\D/g, "") || 0);
+            const an = Number(String(a.semester).replace(/\D/g, "") || 0);
+            const bn = Number(String(b.semester).replace(/\D/g, "") || 0);
             return an - bn;
           });
 
@@ -317,8 +317,8 @@ export const useCoursesFetch = () => {
           const ay = Number(String(a.year).split("-")[0] ?? 0);
           const by = Number(String(b.year).split("-")[0] ?? 0);
           if (ay !== by) return ay - by;
-          const an = Number(String(a.hk).replaceAll(/\D/g, "") || 0);
-          const bn = Number(String(b.hk).replaceAll(/\D/g, "") || 0);
+          const an = Number(String(a.hk).replace(/\D/g, "") || 0);
+          const bn = Number(String(b.hk).replace(/\D/g, "") || 0);
           return an - bn;
         });
 
@@ -565,9 +565,9 @@ export const useTrainingScoresFetch = () => {
           const raw = row["DRL"] ?? row["drl"];
 
           const score =
-            typeof raw === "number"
-              ? raw
-              : Number(String(raw ?? "").replaceAll(/[^0-9.-]/g, "")) || 0;
+          typeof raw === "number"
+            ? raw
+            : Number(String(raw ?? "").replace(/[^0-9.-]/g, "")) || 0;
 
           return {
             semester: makeSemesterKey(hk, year),
@@ -709,13 +709,13 @@ export const useComparisonFetch = (
             const dtb_all =
               typeof dtbAllRaw === "number"
                 ? dtbAllRaw
-                : Number(String(dtbAllRaw ?? "").replaceAll(/[^0-9.-]/g, "")) ||
+                : Number(String(dtbAllRaw ?? "").replace(/[^0-9.-]/g, "")) ||
                   0;
             const dtb_sv =
               typeof dtbSvRaw === "number"
                 ? dtbSvRaw
                 : dtbSvRaw
-                ? Number(String(dtbSvRaw).replaceAll(/[^0-9.-]/g, ""))
+                ? Number(String(dtbSvRaw).replace(/[^0-9.-]/g, ""))
                 : undefined;
 
             return { course: String(courseRaw ?? ""), dtb_all, dtb_sv };
