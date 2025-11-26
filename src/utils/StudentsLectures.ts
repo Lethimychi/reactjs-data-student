@@ -1,49 +1,167 @@
-import { API_BASE_URL, getAuth } from "./share";
+import { fetchWithAuth } from "./share";
 
 const STUDENT_INFO_ENDPOINT = "/api/giangvien/thong-tin-sinh-vien";
+const STUDENT_GPA_ENDPOINT =
+  "/api/giangvien/gpa-trung-binh-toan-khoa-cua-sinh-vien";
+const STUDENT_PASS_RATE_ENDPOINT = "/api/giangvien/ty-le-qua-mon-cua-sinh-vien";
 
 export async function fetchStudentInfo(
-  masv: string
+  masv: string,
+  semesterDisplayName?: string
 ): Promise<Record<string, unknown> | null> {
   try {
-    if (!API_BASE_URL) throw new Error("API_BASE_URL is not defined");
-    const auth = getAuth();
-    if (!auth.token) throw new Error("Thiếu token xác thực");
+    const payload: Record<string, unknown> = { masv };
+    if (semesterDisplayName) {
+      payload.semester = semesterDisplayName;
+      const parts = String(semesterDisplayName).split(" - ");
+      if (parts.length === 2) {
+        payload["Ten Hoc Ky"] = parts[0].trim();
+        payload["Ten Nam Hoc"] = parts[1].trim();
+        payload.year = parts[1].trim();
+        payload.term = parts[0].trim();
+      } else {
+        payload["Ten Hoc Ky"] = semesterDisplayName.trim();
+        payload.term = semesterDisplayName.trim();
+      }
+      payload["Ma Hoc Ky"] = String(semesterDisplayName)
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .match(/HK\d+/i)?.[0];
+    }
+    console.debug("fetchStudentInfo payload:", payload);
 
-    const res = await fetch(`${API_BASE_URL}${STUDENT_INFO_ENDPOINT}`, {
+    const data = await fetchWithAuth<
+      Record<string, unknown> | Record<string, unknown>[]
+    >(STUDENT_INFO_ENDPOINT, {
       method: "POST",
-      headers: {
-        Authorization: `${auth.tokenType ?? "Bearer"} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-      body: JSON.stringify({ masv }),
+      body: JSON.stringify(payload),
     });
-
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(txt || `Request failed with status ${res.status}`);
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      throw new Error(
-        `Unexpected response type: ${contentType}. ${text.slice(0, 200)}`
-      );
-    }
-
-    const data = await res.json();
-    if (Array.isArray(data))
-      return data.length ? (data[0] as Record<string, unknown>) : null;
+    if (Array.isArray(data)) return data.length ? data[0] : null;
     if (data && typeof data === "object")
       return data as Record<string, unknown>;
     return null;
-  } catch (e) {
-    console.error("fetchStudentInfo error:", e);
+  } catch {
     return null;
   }
 }
 
-export default { fetchStudentInfo };
+export async function fetchStudentAccumulatedGPA(
+  masv: string,
+  semesterDisplayName?: string
+): Promise<unknown> {
+  try {
+    const payload: Record<string, unknown> = { masv };
+    if (semesterDisplayName) {
+      payload.semester = semesterDisplayName;
+      const parts = String(semesterDisplayName).split(" - ");
+      if (parts.length === 2) {
+        payload["Ten Hoc Ky"] = parts[0].trim();
+        payload["Ten Nam Hoc"] = parts[1].trim();
+        payload.year = parts[1].trim();
+        payload.term = parts[0].trim();
+      } else {
+        payload["Ten Hoc Ky"] = semesterDisplayName.trim();
+        payload.term = semesterDisplayName.trim();
+      }
+      payload["Ma Hoc Ky"] = String(semesterDisplayName)
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .match(/HK\d+/i)?.[0];
+    }
+    console.debug("fetchStudentAccumulatedGPA payload:", payload);
+
+    const data = await fetchWithAuth<unknown>(STUDENT_GPA_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  } catch {
+    console.error("fetchStudentAccumulatedGPA error");
+    return null;
+  }
+}
+
+export async function fetchStudentPassRate(
+  masv: string,
+  semesterDisplayName?: string
+): Promise<unknown> {
+  try {
+    const payload: Record<string, unknown> = { masv };
+    if (semesterDisplayName) {
+      payload.semester = semesterDisplayName;
+      const parts = String(semesterDisplayName).split(" - ");
+      if (parts.length === 2) {
+        payload["Ten Hoc Ky"] = parts[0].trim();
+        payload["Ten Nam Hoc"] = parts[1].trim();
+        payload.year = parts[1].trim();
+        payload.term = parts[0].trim();
+      } else {
+        payload["Ten Hoc Ky"] = semesterDisplayName.trim();
+        payload.term = semesterDisplayName.trim();
+      }
+      payload["Ma Hoc Ky"] = String(semesterDisplayName)
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .match(/HK\d+/i)?.[0];
+    }
+    console.debug("fetchStudentPassRate payload:", payload);
+
+    const data = await fetchWithAuth<unknown>(STUDENT_PASS_RATE_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  } catch {
+    console.error("fetchStudentPassRate error");
+    return null;
+  }
+}
+
+const STUDENT_GPA_TREND_ENDPOINT =
+  "/api/giangvien/xu-huong-gpa-cua-sinh-vien-qua-cac-hoc-ky";
+
+export async function fetchStudentGpaTrend(masv: string): Promise<unknown> {
+  try {
+    const payload = { masv };
+    console.debug("fetchStudentGpaTrend payload:", payload);
+    const data = await fetchWithAuth<unknown>(STUDENT_GPA_TREND_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  } catch (e) {
+    console.error("fetchStudentGpaTrend error", e);
+    return null;
+  }
+}
+
+const STUDENT_REGISTERED_CREDITS_ENDPOINT =
+  "/api/giangvien/so-tin-chi-dang-ki-cua-sinh-vien";
+
+export async function fetchStudentRegisteredCredits(
+  masv: string
+): Promise<unknown> {
+  try {
+    const payload = { masv };
+    console.debug("fetchStudentRegisteredCredits payload:", payload);
+    const data = await fetchWithAuth<unknown>(
+      STUDENT_REGISTERED_CREDITS_ENDPOINT,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+    return data;
+  } catch (e) {
+    console.error("fetchStudentRegisteredCredits error", e);
+    return null;
+  }
+}
+
+export default {
+  fetchStudentInfo,
+  fetchStudentAccumulatedGPA,
+  fetchStudentPassRate,
+  fetchStudentGpaTrend,
+  fetchStudentRegisteredCredits,
+};

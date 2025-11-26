@@ -36,7 +36,10 @@ export default function GpaTrendByStudents({
 
   // Extracted fetch function so we can retry on demand
   const fetchGpa = async () => {
-    if (propData) return; // external data provided — don't fetch
+    if (propData) {
+      setData(propData);
+      return;
+    }
 
     if (useMock) {
       const now = new Date();

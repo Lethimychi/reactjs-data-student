@@ -1023,7 +1023,8 @@ const STUDENT_LIST_BY_CLASS_ENDPOINT =
   "/api/giangvien/Danh-Sach-Sinh-Vien-Lop-X";
 
 export async function fetchStudentsByClass(
-  lop: string
+  lop: string,
+  semesterDisplayName?: string
 ): Promise<Array<Record<string, unknown>>> {
   try {
     if (!API_BASE_URL) throw new Error("API_BASE_URL is not defined");
@@ -1031,6 +1032,56 @@ export async function fetchStudentsByClass(
     if (!auth.token) throw new Error("Thiếu token xác thực");
 
     const url = `${API_BASE_URL}${STUDENT_LIST_BY_CLASS_ENDPOINT}`;
+    const payload: Record<string, unknown> = { lop };
+    if (semesterDisplayName) {
+      payload.semester = semesterDisplayName;
+      // Also include common fields the backend sometimes expects:
+      // split by ' - ' (term - year) e.g. "HK1 - 2023-2024" or "HK1 - 2023"
+      const parts = semesterDisplayName.split(" - ");
+      if (parts.length === 2) {
+        payload["Ten Hoc Ky"] = parts[0].trim();
+        payload["Ten Nam Hoc"] = parts[1].trim();
+        payload.year = parts[1].trim();
+        payload.term = parts[0].trim();
+      } else {
+        // fallback: treat whole string as term
+        payload["Ten Hoc Ky"] = semesterDisplayName.trim();
+        payload.term = semesterDisplayName.trim();
+      }
+      // also add normalized Ma Hoc Ky if possible (HK1/HK2)
+      const norm = String(semesterDisplayName)
+        .replace(/\s+/g, "")
+        .toUpperCase();
+      const maMatch = norm.match(/HK\d+/i)?.[0];
+      if (maMatch) payload["Ma Hoc Ky"] = maMatch;
+
+      // also add numeric and alternative keys that some endpoints expect
+      // e.g. { HocKy: 1, NamHoc: "2023-2024", HocKyNamHoc: "HK1 - 2023-2024" }
+      try {
+        const termNumberMatch = String(
+          maMatch ?? payload["Ten Hoc Ky"] ?? ""
+        ).match(/(\d+)/);
+        const termNumber = termNumberMatch
+          ? Number(termNumberMatch[1])
+          : undefined;
+        if (termNumber && Number.isFinite(termNumber))
+          payload["HocKy"] = termNumber;
+      } catch {
+        /* ignore */
+      }
+      if (parts && parts.length === 2) {
+        payload["NamHoc"] = parts[1].trim();
+      }
+      payload["HocKyNamHoc"] = semesterDisplayName;
+
+      // add camelCase / no-space variants in case backend uses different keys
+      if (payload["Ten Hoc Ky"]) payload["tenHocKy"] = payload["Ten Hoc Ky"];
+      if (payload["Ten Nam Hoc"]) payload["tenNamHoc"] = payload["Ten Nam Hoc"];
+      if (payload["Ma Hoc Ky"]) payload["maHocKy"] = payload["Ma Hoc Ky"];
+    }
+
+    console.debug("fetchStudentsByClass payload:", payload);
+
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -1039,7 +1090,7 @@ export async function fetchStudentsByClass(
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "69420",
       },
-      body: JSON.stringify({ lop }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {

@@ -48,7 +48,7 @@ export default function AnalyticsStatCard(props: AnalyticsStatCardProps) {
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-m font-medium text-black/85">
+          <p className="text-sm font-medium text-black/85">
             <b>{title}</b>
           </p>
           <p className="mt-4 text-3xl font-semibold tracking-tight text-white drop-shadow-sm">
