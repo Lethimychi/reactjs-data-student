@@ -150,16 +150,26 @@ export default function RecentOrders({
     const rows = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
     for (const r of rows) {
       const id = String(
-        r["Ma Sinh Vien"] ?? r["masv"] ?? r["MaSV"] ?? r["Ma SinhVien"] ?? Math.random()
+        r["Ma Sinh Vien"] ??
+          r["masv"] ??
+          r["MaSV"] ??
+          r["Ma SinhVien"] ??
+          Math.random()
       );
       const existing = byId.get(id);
       const base = existing ? existing.base : r;
 
       // try to extract a semester label and GPA value for trend chart
       const semLabel = String(
-        r["HocKyNamHoc"] ?? r["HocKy"] ?? r["Ten Hoc Ky"] ?? r["TenHocKy"] ?? r["semester"] ?? ""
+        r["HocKyNamHoc"] ??
+          r["HocKy"] ??
+          r["Ten Hoc Ky"] ??
+          r["TenHocKy"] ??
+          r["semester"] ??
+          ""
       );
-      const gpaRaw = r["GPA"] ?? r["GPA_HocKy"] ?? r["DiemTB"] ?? r["gpa"] ?? null;
+      const gpaRaw =
+        r["GPA"] ?? r["GPA_HocKy"] ?? r["DiemTB"] ?? r["gpa"] ?? null;
       let gpaVal: number | null = null;
       if (typeof gpaRaw === "number") gpaVal = gpaRaw;
       else if (typeof gpaRaw === "string") {
