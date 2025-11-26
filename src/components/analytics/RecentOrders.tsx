@@ -150,7 +150,11 @@ export default function RecentOrders({
     const rows = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
     for (const r of rows) {
       const id = String(
-        r["Ma Sinh Vien"] ?? r["masv"] ?? r["MaSV"] ?? r["Ma SinhVien"] ?? Math.random()
+        r["Ma Sinh Vien"] ??
+          r["masv"] ??
+          r["MaSV"] ??
+          r["Ma SinhVien"] ??
+          Math.random()
       );
       const existing = byId.get(id);
       const base = existing ? existing.base : r;
