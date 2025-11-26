@@ -158,10 +158,70 @@ export async function fetchStudentRegisteredCredits(
   }
 }
 
+const STUDENT_COURSE_SCORES_ENDPOINT =
+  "/api/giangvien/diem-chi-tiet-tung-mon-hoc-sinh-vien-da-hoc";
+
+export async function fetchStudentCourseScores(
+  masv: string,
+  semesterDisplayName?: string
+): Promise<unknown> {
+  try {
+    const payload: Record<string, unknown> = { masv };
+    if (semesterDisplayName) {
+      payload.semester = semesterDisplayName;
+      const parts = String(semesterDisplayName).split(" - ");
+      if (parts.length === 2) {
+        payload["Ten Hoc Ky"] = parts[0].trim();
+        payload["Ten Nam Hoc"] = parts[1].trim();
+        payload.year = parts[1].trim();
+        payload.term = parts[0].trim();
+      } else {
+        payload["Ten Hoc Ky"] = semesterDisplayName.trim();
+        payload.term = semesterDisplayName.trim();
+      }
+      payload["Ma Hoc Ky"] = String(semesterDisplayName)
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .match(/HK\d+/i)?.[0];
+    }
+    console.debug("fetchStudentCourseScores payload:", payload);
+
+    const data = await fetchWithAuth<unknown>(STUDENT_COURSE_SCORES_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  } catch (e) {
+    console.error("fetchStudentCourseScores error", e);
+    return null;
+  }
+}
+
+const STUDENT_DRL_ENDPOINT =
+  "/api/giangvien/diem-ren-luyen-cua-sinh-vien-trong-tung-hoc-ky";
+
+export async function fetchStudentDRL(masv: string): Promise<unknown> {
+  try {
+    const payload = { masv };
+    console.debug("fetchStudentDRL payload:", payload);
+
+    const data = await fetchWithAuth<unknown>(STUDENT_DRL_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  } catch (e) {
+    console.error("fetchStudentDRL error", e);
+    return null;
+  }
+}
+
 export default {
   fetchStudentInfo,
   fetchStudentAccumulatedGPA,
   fetchStudentPassRate,
   fetchStudentGpaTrend,
   fetchStudentRegisteredCredits,
+  fetchStudentCourseScores,
+  fetchStudentDRL,
 };

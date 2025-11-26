@@ -10,97 +10,18 @@ import { useEffect, useState } from "react";
 // navigation removed for subject-centric table
 import { useQuery } from "@tanstack/react-query";
 import { fetchStudentsByClass } from "../../utils/ClassLecturerApi";
+import { fetchStudentCourseScores } from "../../utils/StudentsLectures";
 
 // Mock data for preview when no class is selected or API unavailable
-const MOCK_STUDENTS: Array<Record<string, unknown>> = [
-  {
-    "Ma Sinh Vien": "018649458",
-    "Ho Ten": "An San Tiến",
-    MonHoc: "Toán",
-    "Diem Chuyen Can": 8.0,
-    SoTinChi: 3,
-    "Diem Giua Ky": 7.0,
-    "Diem Cuoi Ky": 8.4,
-    "Diem Trung Binh": 7.5,
-    TrangThai: "Đậu",
-    GpaTrend: [
-      { semester: "HK1 - 2023", gpa: 7.2 },
-      { semester: "HK2 - 2023", gpa: 7.5 },
-      { semester: "HK1 - 2024", gpa: 7.8 },
-    ],
-  },
-  {
-    "Ma Sinh Vien": "018649459",
-    "Ho Ten": "Nguyễn Văn A",
-    MonHoc: "Lập trình",
-    "Diem Chuyen Can": 6.0,
-    SoTinChi: 3,
-    "Diem Giua Ky": 6.2,
-    "Diem Cuoi Ky": 6.8,
-    "Diem Trung Binh": 6.33,
-    TrangThai: "Đậu",
-    GpaTrend: [
-      { semester: "HK1 - 2023", gpa: 6.5 },
-      { semester: "HK2 - 2023", gpa: 6.8 },
-      { semester: "HK1 - 2024", gpa: 7.0 },
-    ],
-  },
-  {
-    "Ma Sinh Vien": "018649460",
-    "Ho Ten": "Trần Thị B",
-    MonHoc: "Vật lý",
-    "Diem Chuyen Can": 9.0,
-    SoTinChi: 4,
-    "Diem Giua Ky": 8.1,
-    "Diem Cuoi Ky": 8.4,
-    "Diem Trung Binh": 8.5,
-    TrangThai: "Đậu",
-    GpaTrend: [
-      { semester: "HK1 - 2023", gpa: 8.0 },
-      { semester: "HK2 - 2023", gpa: 8.1 },
-      { semester: "HK1 - 2024", gpa: 8.3 },
-    ],
-  },
-  {
-    "Ma Sinh Vien": "018649461",
-    "Ho Ten": "Lê Văn C",
-    MonHoc: "Hóa học",
-    "Diem Chuyen Can": 5.0,
-    SoTinChi: 4,
-    "Diem Giua Ky": 5.6,
-    "Diem Cuoi Ky": 5.9,
-    "Diem Trung Binh": 5.5,
-    TrangThai: "Rớt",
-    GpaTrend: [
-      { semester: "HK1 - 2023", gpa: 5.2 },
-      { semester: "HK2 - 2023", gpa: 5.6 },
-      { semester: "HK1 - 2024", gpa: 5.9 },
-    ],
-  },
-  {
-    "Ma Sinh Vien": "018649462",
-    "Ho Ten": "Phạm Thị D",
-    MonHoc: "Cơ sở dữ liệu",
-    "Diem Chuyen Can": 9.5,
-    SoTinChi: 3,
-    "Diem Giua Ky": 9.0,
-    "Diem Cuoi Ky": 9.4,
-    "Diem Trung Binh": 9.3,
-    TrangThai: "Đậu",
-    GpaTrend: [
-      { semester: "HK1 - 2023", gpa: 9.0 },
-      { semester: "HK2 - 2023", gpa: 9.1 },
-      { semester: "HK1 - 2024", gpa: 9.2 },
-    ],
-  },
-];
 
 export default function RecentOrders({
   selectedClassName,
   selectedSemesterDisplayName,
+  masv,
 }: {
   selectedClassName?: string | null;
   selectedSemesterDisplayName?: string | null;
+  masv?: string | null;
 }) {
   const [students, setStudents] = useState<Array<
     Record<string, unknown>
@@ -110,16 +31,27 @@ export default function RecentOrders({
 
   const studentsQuery = useQuery({
     queryKey: [
-      "studentsByClass",
+      "studentsByClassOrScores",
       selectedClassName,
       selectedSemesterDisplayName,
+      masv,
     ],
-    queryFn: async () =>
-      fetchStudentsByClass(
-        selectedClassName!,
-        selectedSemesterDisplayName ?? undefined
-      ),
-    enabled: !!selectedClassName,
+    queryFn: async () => {
+      if (masv) {
+        return fetchStudentCourseScores(
+          masv,
+          selectedSemesterDisplayName ?? undefined
+        );
+      }
+      if (selectedClassName) {
+        return fetchStudentsByClass(
+          selectedClassName,
+          selectedSemesterDisplayName ?? undefined
+        );
+      }
+      return [];
+    },
+    enabled: !!selectedClassName || !!masv,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
@@ -127,7 +59,7 @@ export default function RecentOrders({
   // no navigation needed for subject table
 
   useEffect(() => {
-    if (!selectedClassName) {
+    if (!selectedClassName && !masv) {
       setStudents(null);
       return;
     }
@@ -148,7 +80,17 @@ export default function RecentOrders({
 
     // Populate the map from the query data (this was missing previously)
     const rows = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
-    for (const r of rows) {
+    
+    // Filter by semester if masv is present (course scores mode)
+    const filteredRows = masv && selectedSemesterDisplayName
+      ? rows.filter((r) => {
+          const term = r["Ten Hoc Ky"] ?? r["TenHocKy"] ?? "";
+          const year = r["Ten Nam Hoc"] ?? r["TenNamHoc"] ?? "";
+          const semesterStr = `${term} - ${year}`;
+          return semesterStr.trim() === selectedSemesterDisplayName.trim();
+        })
+      : rows;
+    for (const r of filteredRows) {
       const id = String(
         r["Ma Sinh Vien"] ??
           r["masv"] ??
@@ -224,9 +166,9 @@ export default function RecentOrders({
     studentsQuery.error,
   ]);
 
-  // compute displayStudents: use real students if available, otherwise show mock when no class selected
-  const displayStudents =
-    students ?? (selectedClassName ? null : MOCK_STUDENTS);
+  // compute displayStudents: use real students if available, otherwise show mock when no class/student selected
+  const displayStudents: Array<Record<string, unknown>> | null =
+    students ?? (selectedClassName || masv ? null : null);
 
   // pagination helpers (computed during render when displayStudents exists)
   const total =
@@ -238,11 +180,7 @@ export default function RecentOrders({
     displayStudents && displayStudents.length
       ? displayStudents
           .slice()
-          .sort((a, b) => {
-            const an = String(a["Ho Ten"] ?? a["HoTen"] ?? "").trim();
-            const bn = String(b["Ho Ten"] ?? b["HoTen"] ?? "").trim();
-            return an.localeCompare(bn, "vi", { sensitivity: "base" });
-          })
+         
           .slice(start, start + pageSize)
       : [];
 
@@ -251,7 +189,7 @@ export default function RecentOrders({
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Danh sách sinh viên
+            {masv ? "Chi tiết điểm môn học" : "Danh sách sinh viên"}
           </h3>
         </div>
 
@@ -358,6 +296,7 @@ export default function RecentOrders({
                       {(() => {
                         const creditKeys = [
                           "SoTinChi",
+                          "So Tin Chi",
                           "So Tín Chỉ",
                           "SoTC",
                           "TinChi",
@@ -572,9 +511,9 @@ export default function RecentOrders({
                   colSpan={6}
                   className="py-6 text-center text-sm text-slate-500"
                 >
-                  {selectedClassName
+                  {selectedClassName || masv
                     ? "Không có dữ liệu"
-                    : "Chọn lớp để xem danh sách sinh viên"}
+                    : "Chọn lớp hoặc sinh viên để xem danh sách"}
                 </TableCell>
               </TableRow>
             )}

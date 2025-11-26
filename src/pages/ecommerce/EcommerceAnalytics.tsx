@@ -10,6 +10,7 @@ import WebsiteVisitsColumnChart from "../../components/analytics/WebsiteVisitsCo
 // import OrderTimelineCard from "../../components/analytics/OrderTimelineCard";
 import GpaTrendByStudents from "../../components/analytics/GpaTrendByStudents";
 import RecentOrders from "../../components/analytics/RecentOrders";
+import DRLStudents from "../../components/analytics/DRLStudents";
 
 // import ScoreDetail from "../../components/analytics/ScoreDetail";
 // charts used elsewhere kept in repo but not shown in this layout
@@ -457,46 +458,70 @@ export default function EcommerceAnalytics({
 
                 if (credits !== null && !Number.isNaN(credits)) {
                   displayValue = String(credits);
-                  displayChange = "Trên học kỳ"; // clear "vs last month" if real data
+                  displayChange = "Trên học kỳ";
+                } else {
+                  displayValue = "-";
+                  displayChange = "Không có dữ liệu";
                 }
               }
 
               if (card.title === "Tỷ lệ qua môn") {
-                let rateStr = "50.00%";
+                let rateStr = "-";
+                let hasData = false;
                 try {
                   if (passRateData) {
                     if (
                       Array.isArray(passRateData) &&
                       passRateData.length > 0
                     ) {
-                      let totalPassed = 0;
-                      let totalTaken = 0;
-                      const arr = passRateData as Array<
-                        Record<string, unknown>
-                      >;
-                      arr.forEach((item) => {
-                        const pass =
-                          Number(
-                            item["So_Mon_Dau"] ??
-                              item["SoMonDau"] ??
-                              item["SoMonDa"] ??
-                              0
-                          ) || 0;
-                        const total =
-                          Number(
-                            item["Tong_Mon"] ??
-                              item["TongMon"] ??
-                              item["Tong_Mon_Hoc"] ??
-                              0
-                          ) || 0;
-                        totalPassed += pass;
-                        totalTaken += total;
-                      });
-                      if (totalTaken > 0)
-                        rateStr = `${((totalPassed / totalTaken) * 100).toFixed(
-                          2
-                        )}%`;
-                      else rateStr = "0.00%";
+                      // Check if data matches selected semester
+                      let matchingSemesterData: Array<Record<string, unknown>> = passRateData as Array<Record<string, unknown>>;
+                      if (selectedSemesterDisplayName) {
+                        const parts = selectedSemesterDisplayName.split(" - ");
+                        if (parts.length === 2) {
+                          const term = parts[0].trim();
+                          const year = parts[1].trim();
+                          matchingSemesterData = (passRateData as Array<
+                            Record<string, unknown>
+                          >).filter((item) => {
+                            const itemTerm = String(item["Ten Hoc Ky"] ?? item["TenHocKy"] ?? "").trim();
+                            const itemYear = String(item["Ten Nam Hoc"] ?? item["TenNamHoc"] ?? "").trim();
+                            return itemTerm === term && itemYear === year;
+                          });
+                        }
+                      }
+
+                      if (matchingSemesterData.length > 0) {
+                        let totalPassed = 0;
+                        let totalTaken = 0;
+                        const arr = matchingSemesterData as Array<
+                          Record<string, unknown>
+                        >;
+                        arr.forEach((item) => {
+                          const pass =
+                            Number(
+                              item["So_Mon_Dau"] ??
+                                item["SoMonDau"] ??
+                                item["SoMonDa"] ??
+                                0
+                            ) || 0;
+                          const total =
+                            Number(
+                              item["Tong_Mon"] ??
+                                item["TongMon"] ??
+                                item["Tong_Mon_Hoc"] ??
+                                0
+                            ) || 0;
+                          totalPassed += pass;
+                          totalTaken += total;
+                        });
+                        if (totalTaken > 0) {
+                          rateStr = `${((totalPassed / totalTaken) * 100).toFixed(
+                            2
+                          )}%`;
+                          hasData = true;
+                        }
+                      }
                     } else if (typeof passRateData === "object") {
                       const obj = passRateData as Record<string, unknown>;
                       const raw =
@@ -506,11 +531,13 @@ export default function EcommerceAnalytics({
                         null;
                       if (raw !== null && raw !== undefined) {
                         const num = Number(raw);
-                        if (!Number.isNaN(num))
+                        if (!Number.isNaN(num)) {
                           rateStr =
                             num <= 1
                               ? `${(num * 100).toFixed(2)}%`
                               : `${Number(num).toFixed(2)}%`;
+                          hasData = true;
+                        }
                       }
                     }
                   }
@@ -518,9 +545,8 @@ export default function EcommerceAnalytics({
                   console.debug("parse passRateData failed", e);
                 }
 
-                displayValue = rateStr === "50.00%" ? "50.00%" : rateStr;
-                displayChange =
-                  displayValue === "50.00%" ? "50.00%" : "với học kỳ";
+                displayValue = rateStr;
+                displayChange = hasData ? "Với học kỳ" : "Không có dữ liệu";
               }
 
               return (
@@ -573,8 +599,14 @@ export default function EcommerceAnalytics({
         <div>
           <RecentOrders
             selectedSemesterDisplayName={selectedSemesterDisplayName}
+            masv={
+              new URLSearchParams(location.search).get("masv") ?? undefined
+            }
           />
         </div>
+        <DRLStudents
+          masv={new URLSearchParams(location.search).get("masv") ?? undefined}
+        />
       </div>
     </>
   );
