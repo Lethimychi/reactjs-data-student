@@ -157,9 +157,15 @@ export default function RecentOrders({
 
       // try to extract a semester label and GPA value for trend chart
       const semLabel = String(
-        r["HocKyNamHoc"] ?? r["HocKy"] ?? r["Ten Hoc Ky"] ?? r["TenHocKy"] ?? r["semester"] ?? ""
+        r["HocKyNamHoc"] ??
+          r["HocKy"] ??
+          r["Ten Hoc Ky"] ??
+          r["TenHocKy"] ??
+          r["semester"] ??
+          ""
       );
-      const gpaRaw = r["GPA"] ?? r["GPA_HocKy"] ?? r["DiemTB"] ?? r["gpa"] ?? null;
+      const gpaRaw =
+        r["GPA"] ?? r["GPA_HocKy"] ?? r["DiemTB"] ?? r["gpa"] ?? null;
       let gpaVal: number | null = null;
       if (typeof gpaRaw === "number") gpaVal = gpaRaw;
       else if (typeof gpaRaw === "string") {
