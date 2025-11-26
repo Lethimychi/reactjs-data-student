@@ -35,7 +35,7 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
   const dynamicComparisonMax = getDynamicAxisMax(allScores, 6, 1);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0]">
+    <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0] h-113">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-blue-50 rounded-lg">
           <TrendingUp className="w-6 h-6 text-[#3B82F6]" />

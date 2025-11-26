@@ -278,19 +278,28 @@ const StudentDashboard: React.FC = () => {
                 }
               />
               <div className="flex gap-6">
-                <PassRateChart
-                  semesters={semesters}
-                  coursesPerSemester={coursesPerSemester}
-                  overallPassRate={overallPassRate}
-                />
-                <StudentScoreChartHighestLowest />
+                <div className="w-1/2">
+                  <ComparisonChart comparisonData={filteredComparison} />
+                </div>
+                <div className="w-1/2">
+                  {/* Classification Chart */}
+                  <StudentClassificationChart semester={selectedSemester} />
+                </div>
               </div>
 
-              {/* Comparison Chart */}
-              <ComparisonChart comparisonData={filteredComparison} />
-
-              {/* Classification Chart */}
-              <StudentClassificationChart semester={selectedSemester} />
+              <div className="flex gap-6">
+                <div className="w-1/2">
+                  {/* Pass Rate Chart */}
+                  <PassRateChart
+                    semesters={semesters}
+                    coursesPerSemester={coursesPerSemester}
+                    overallPassRate={overallPassRate}
+                  />
+                </div>
+                <div className="w-1/2">
+                  <StudentScoreChartHighestLowest />
+                </div>
+              </div>
 
               {/* Training Score & Rate */}
               <div className="flex gap-6">
