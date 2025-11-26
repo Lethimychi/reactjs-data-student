@@ -9,7 +9,6 @@ interface UserInfo {
 // MENU CHO ADMIN
 const adminNav: NavItem[] = [
   { name: "Thống kê", icon: <GridIcon />, path: "/dashboard" },
-  { name: "Hồ sơ cá nhân", icon: <UserCircleIcon />, path: "/profile" },
 ];
 
 // MENU CHO GIẢNG VIÊN

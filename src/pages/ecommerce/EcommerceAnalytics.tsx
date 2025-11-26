@@ -217,17 +217,12 @@ export default function EcommerceAnalytics({
   }, [propSemester]);
   return (
     <>
-      {/* <PageMeta
-        title="Advanced Ecommerce Dashboard | TailAdmin - React.js Admin Dashboard Template"
-        description="Advanced ecommerce analytics dashboard highlighting KPIs, traffic insights, conversion performance, and order timeline."
-      />
-      <PageBreadcrumb pageTitle="Ecommerce Analytics" /> */}
-
-      <div className="space-y-6 bg-white p-6 rounded-lg">
+      {/* Main Container with Light Blue Background */}
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 p-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-slate-700 mt-1 d-">
+            <h2 className="text-2xl font-semibold text-slate-700">
               {studentInfo ? (
                 <>
                   {String(
@@ -274,7 +269,9 @@ export default function EcommerceAnalytics({
           </div>
 
           <div className="flex-shrink-0">
-            <label className="block text-sm text-slate-500 mb-1">Học kỳ</label>
+            <label className="block text-sm font-medium text-slate-600 mb-2">
+              Học kỳ
+            </label>
             <div className="relative inline-block">
               <button
                 ref={semBtnRef}
@@ -282,13 +279,13 @@ export default function EcommerceAnalytics({
                 onClick={() => setIsSemesterOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={isSemesterOpen}
-                className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm hover:shadow-md hover:border-sky-300 transition-all focus:outline-none focus:ring-2 focus:ring-sky-100"
               >
-                <span className="text-sm text-gray-700">
+                <span className="text-sm font-medium text-slate-700">
                   {selectedSemesterDisplayName ?? "Không có dữ liệu"}
                 </span>
                 <svg
-                  className={`ml-1 h-4 w-4 text-gray-400 transition-transform duration-150 ${
+                  className={`ml-1 h-4 w-4 text-slate-400 transition-transform duration-150 ${
                     isSemesterOpen ? "rotate-180" : ""
                   }`}
                   viewBox="0 0 20 20"
