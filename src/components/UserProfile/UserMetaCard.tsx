@@ -4,7 +4,6 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
-import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -45,40 +44,63 @@ export default function UserMetaCard() {
               </div>
             </div>
           </div>
+
           <button
             onClick={openModal}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white 
-             px-5 py-3 text-sm font-medium text-gray-700 shadow-sm 
-             whitespace-nowrap flex-nowrap
-             hover:bg-gray-50 hover:text-gray-800 
-             dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 
-             dark:hover:bg-gray-700"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 11c1.104 0 2-.896 2-2V7a2 2 0 10-4 0v2c0 1.104.896 2 2 2z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 11h12v10H6z"
-              />
-            </svg>
-            Đổi mật khẩu
+            Edit
           </button>
         </div>
       </div>
-      <ChangePasswordModal isOpen={isOpen} closeModal={closeModal} />
+
+      {/* Modal */}
+      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
+        <div className="w-full max-w-[700px] p-4 rounded-3xl bg-white dark:bg-gray-900 lg:p-11">
+          <div className="px-2 pr-14">
+            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+              Edit Personal Information
+            </h4>
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+              Update your details to keep your profile up-to-date.
+            </p>
+          </div>
+
+          <form className="flex flex-col">
+            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+              <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
+                Personal Information
+              </h5>
+
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                <div>
+                  <Label>Full Name</Label>
+                  <Input type="text" value={user.ho_ten} />
+                </div>
+
+                <div>
+                  <Label>Username</Label>
+                  <Input type="text" value={user.username} disabled />
+                </div>
+
+                <div>
+                  <Label>Role</Label>
+                  <Input type="text" value={user.loai_nguoi_dung} disabled />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+              <Button size="sm" variant="outline" onClick={closeModal}>
+                Close
+              </Button>
+              <Button size="sm" onClick={handleSave}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </div>
+      </Modal>
     </>
   );
 }
