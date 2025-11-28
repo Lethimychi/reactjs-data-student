@@ -266,6 +266,19 @@ export default function EcommerceAnalytics({
                 "Chọn sinh viên để xem chi tiết học tập và xu hướng GPA."
               )}
             </p>
+
+            {/* Visible selected semester label so users always see the active filter */}
+            <div className="mt-2">
+              <span className="text-xs text-slate-400">Học kỳ đã chọn: </span>
+              <span
+                className="text-sm font-medium text-slate-700 dark:text-slate-100"
+                title={String(
+                  selectedSemesterDisplayName ?? "Không có dữ liệu"
+                )}
+              >
+                {selectedSemesterDisplayName ?? "Không có dữ liệu"}
+              </span>
+            </div>
           </div>
 
           <div className="flex-shrink-0">
@@ -323,6 +336,33 @@ export default function EcommerceAnalytics({
                   </DropdownItem>
                 )}
               </Dropdown>
+              {/* badge next to dropdown to make selected semester more visible */}
+              <div className="mt-2">
+                <span
+                  className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-sky-800 dark:text-sky-100"
+                  title={String(
+                    selectedSemesterDisplayName ?? "Không có dữ liệu"
+                  )}
+                >
+                  <svg
+                    className="h-4 w-4 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  <span>
+                    {selectedSemesterDisplayName ?? "Không có dữ liệu"}
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -472,17 +512,22 @@ export default function EcommerceAnalytics({
                       passRateData.length > 0
                     ) {
                       // Check if data matches selected semester
-                      let matchingSemesterData: Array<Record<string, unknown>> = passRateData as Array<Record<string, unknown>>;
+                      let matchingSemesterData: Array<Record<string, unknown>> =
+                        passRateData as Array<Record<string, unknown>>;
                       if (selectedSemesterDisplayName) {
                         const parts = selectedSemesterDisplayName.split(" - ");
                         if (parts.length === 2) {
                           const term = parts[0].trim();
                           const year = parts[1].trim();
-                          matchingSemesterData = (passRateData as Array<
-                            Record<string, unknown>
-                          >).filter((item) => {
-                            const itemTerm = String(item["Ten Hoc Ky"] ?? item["TenHocKy"] ?? "").trim();
-                            const itemYear = String(item["Ten Nam Hoc"] ?? item["TenNamHoc"] ?? "").trim();
+                          matchingSemesterData = (
+                            passRateData as Array<Record<string, unknown>>
+                          ).filter((item) => {
+                            const itemTerm = String(
+                              item["Ten Hoc Ky"] ?? item["TenHocKy"] ?? ""
+                            ).trim();
+                            const itemYear = String(
+                              item["Ten Nam Hoc"] ?? item["TenNamHoc"] ?? ""
+                            ).trim();
                             return itemTerm === term && itemYear === year;
                           });
                         }
@@ -513,9 +558,10 @@ export default function EcommerceAnalytics({
                           totalTaken += total;
                         });
                         if (totalTaken > 0) {
-                          rateStr = `${((totalPassed / totalTaken) * 100).toFixed(
-                            2
-                          )}%`;
+                          rateStr = `${(
+                            (totalPassed / totalTaken) *
+                            100
+                          ).toFixed(2)}%`;
                           hasData = true;
                         }
                       }
@@ -596,9 +642,7 @@ export default function EcommerceAnalytics({
         <div>
           <RecentOrders
             selectedSemesterDisplayName={selectedSemesterDisplayName}
-            masv={
-              new URLSearchParams(location.search).get("masv") ?? undefined
-            }
+            masv={new URLSearchParams(location.search).get("masv") ?? undefined}
           />
         </div>
         <DRLStudents
