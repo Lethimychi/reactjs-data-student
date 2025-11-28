@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Modal } from "../ui/modal";
+import { Label } from "recharts";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import { changePassword } from "../../utils/auth/api";
 import Toast from "../notification/toast";
 import ValidationError from "./helper/ValidationError";
-import Label from "../form/Label";
+
+// Mock components - replace with your actual imports
 
 interface PasswordStrengthProps {
   value: string;
@@ -14,21 +16,11 @@ interface PasswordStrengthProps {
 
 const PasswordStrength: React.FC<PasswordStrengthProps> = ({ value }) => {
   const getStrength = () => {
-    const lower = /[a-z]/.test(value);
-    const upper = /[A-Z]/.test(value);
-    const number = /[0-9]/.test(value);
-    const special = /[^A-Za-z0-9]/.test(value);
-
-    const score = [lower, upper, number, special].filter(Boolean).length;
-
     if (value.length === 0) return { label: "", color: "", width: "0%" };
-
-    if (value.length < 8 || score <= 1)
-      return { label: "Yếu", color: "bg-red-500", width: "25%" };
-
-    if (value.length < 12 || score <= 3)
+    if (value.length < 8)
+      return { label: "Yếu", color: "bg-red-500", width: "33%" };
+    if (value.length < 12)
       return { label: "Trung bình", color: "bg-yellow-500", width: "66%" };
-
     return { label: "Mạnh", color: "bg-green-500", width: "100%" };
   };
 
