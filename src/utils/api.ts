@@ -51,6 +51,10 @@ export const loginApi = async (
   if (data.refresh_token) {
     localStorage.setItem("refresh_token", data.refresh_token);
   }
+  if (data.user_info) {
+    const userInfo = data.user_info as { username: string };
+    localStorage.setItem("userId", JSON.stringify(userInfo.username));
+  }
 
   // Lưu token_type (mặc định là "Bearer" nếu backend không trả)
   const tokenType = data.token_type || "Bearer";

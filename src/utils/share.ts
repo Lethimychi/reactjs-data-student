@@ -4,8 +4,9 @@ export const API_BASE_URL = import.meta.env.VITE_API;
 export function getAuth() {
   const token = localStorage.getItem("access_token");
   const tokenType = localStorage.getItem("token_type");
+  const userId = localStorage.getItem("userId");
   // default to Bearer if server didn't store token_type
-  return { token, tokenType: tokenType ?? "Bearer" };
+  return { token, tokenType: tokenType ?? "Bearer", userId };
 }
 
 // Generic fetch helper that attaches auth headers and validates JSON response
