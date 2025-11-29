@@ -22,6 +22,7 @@ import {
   fetchAllClasses,
   fetchStudentCount,
 } from "../../utils/ClassLecturerApi";
+import ChatBot from "../../components/chat/ChatBox";
 // Note: dashboard data is loaded per-component via React Query to enable dedupe by queryKey
 
 type LoadingState = "idle" | "loading" | "error" | "success";
@@ -314,6 +315,9 @@ export default function Home(): JSX.Element {
 
         <div className="col-span-12 xl:col-span-12">
           <RecentOrders selectedClassName={selectedClassName ?? undefined} />
+        </div>
+        <div>
+          <ChatBot userType={"teacher"} />
         </div>
       </div>
     </>

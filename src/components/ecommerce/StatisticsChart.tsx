@@ -59,9 +59,6 @@ export default function StatisticsChart({
           return { studentName: name || "(không tên)", gpa };
         });
 
-        // If roster has entries but none have GPA entries and gpas was empty,
-        // still show roster students with GPA=0 (per requirement). Only when roster empty
-        // do we show 'Không có dữ liệu'.
         if (!ignore) setData(merged);
       } catch (err) {
         console.error("StatisticsChart load error:", err);

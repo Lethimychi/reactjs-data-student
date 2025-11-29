@@ -28,6 +28,7 @@ import {
   classifyScore,
 } from "../../utils/dataCalculators";
 import { StudentHeader } from "../../components/student_dashboard";
+import ChatBot from "../../components/chat/ChatBox";
 
 const StudentDashboard: React.FC = () => {
   // ========== UI STATE ==========
@@ -305,6 +306,9 @@ const StudentDashboard: React.FC = () => {
               <div className="flex gap-6">
                 <TrainingScoreChart trainingScoreData={trainingScoreData} />
                 <RateGpaAndPoint />
+              </div>
+              <div>
+                <ChatBot userType={"student"} />
               </div>
             </>
           )}
