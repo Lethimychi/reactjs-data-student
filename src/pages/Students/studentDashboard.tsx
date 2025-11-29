@@ -167,11 +167,11 @@ const StudentDashboard: React.FC = () => {
     }
 
     const totalPassedCourses = (currentStudent?.passRateData ?? []).reduce(
-      (sum: number, item: any) => sum + item.passed,
+      (sum: number, item) => sum + item.passed,
       0
     );
     const totalCourses = (currentStudent?.passRateData ?? []).reduce(
-      (sum: number, item: any) => sum + item.total,
+      (sum: number, item) => sum + item.total,
       0
     );
     return totalCourses

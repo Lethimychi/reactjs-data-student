@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, X } from "lucide-react";
 import { Modal } from "../ui/modal";
-import { Label } from "recharts";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import { changePassword } from "../../utils/auth/api";
@@ -147,14 +146,33 @@ export default function ChangePasswordModal({
         setToast({ message: result.message, type: "success" });
         closeAndReset();
       }
-    } catch (err: any) {
-      // Extract API error message if available
-      const message =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Có lỗi xảy ra. Vui lòng thử lại.";
+    } catch (err: unknown) {
+      // Extract API error message if available (safe cast)
+      let message = "Có lỗi xảy ra. Vui lòng thử lại.";
+      try {
+        const e = err as {
+          response?: { data?: { detail?: string } };
+          message?: string;
+        };
+        message = e?.response?.data?.detail ?? e?.message ?? message;
+      } catch {
+        // ignore
+      }
       console.error(message);
-      setToast({ message: "Mật khẩu cũ không đúng", type: "error" });
+      // Show server message in toast
+      setToast({ message, type: "error" });
+      // Map to inline fields when possible
+      const lower = message.toLowerCase();
+      if (lower.includes("mật khẩu cũ") || lower.includes("cũ")) {
+        setErrors((prev) => ({ ...prev, current: message }));
+      }
+      if (
+        lower.includes("chữ thường") ||
+        lower.includes("ký tự") ||
+        lower.includes("ít nhất")
+      ) {
+        setErrors((prev) => ({ ...prev, new: message }));
+      }
     } finally {
       setLoading(false);
     }
@@ -194,17 +212,33 @@ export default function ChangePasswordModal({
         className="max-w-[500px] m-4"
       >
         <div className="relative w-full max-w-[500px] rounded-3xl bg-white p-5 dark:bg-gray-900 lg:p-8">
-          <h3 className="text-2xl font-semibold text-gray-800 dark:text-white">
-            Đổi Mật Khẩu
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Giữ tài khoản của bạn an toàn với mật khẩu mạnh.
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-2xl font-semibold text-gray-800 dark:text-white">
+                Đổi Mật Khẩu
+              </h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Giữ tài khoản của bạn an toàn với mật khẩu mạnh.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeAndReset}
+              className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
+              aria-label="Close dialog"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
           <div className="mt-6 space-y-5">
             {/* Current Password */}
             <div>
-              <Label>Mật khẩu hiện tại</Label>
+              <div className="mb-2">
+                <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Mật khẩu hiện tại
+                </span>
+              </div>
               <div className="relative">
                 <Input
                   type={showCurrent ? "text" : "password"}
@@ -213,56 +247,70 @@ export default function ChangePasswordModal({
                   onBlur={() =>
                     setTouched((prev) => ({ ...prev, current: true }))
                   }
-                  className="pr-10"
+                  className="w-full rounded-lg border px-3 py-2 pr-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Nhập mật khẩu hiện tại"
+                  aria-label="Mật khẩu hiện tại"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrent(!showCurrent)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showCurrent ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
                   {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <p className="mt-1 min-h-[1.25rem] text-sm text-red-600 dark:text-red-400">
+              <div className="mt-1 min-h-[1.25rem] text-sm text-red-600 dark:text-red-400">
                 <ValidationError
                   message={touched.current ? errors.current : ""}
                 />
-              </p>
+              </div>
             </div>
 
             {/* New Password */}
             <div>
-              <Label>Mật khẩu mới</Label>
+              <div className="mb-2">
+                <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Mật khẩu mới
+                </span>
+              </div>
               <div className="relative">
                 <Input
                   type={showNew ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   onBlur={() => setTouched((prev) => ({ ...prev, new: true }))}
-                  className="pr-10"
+                  className="w-full rounded-lg border px-3 py-2 pr-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Tối thiểu 8 ký tự"
+                  aria-label="Mật khẩu mới"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showNew ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
                   {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-
-              {/* Password Strength - Fixed Height Container */}
-              <div className="h-6 mt-2">
+              <div className="mt-2">
                 <PasswordStrength value={newPassword} />
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Yêu cầu: ít nhất 8 ký tự, có chữ thường và chữ hoa.
+                </p>
               </div>
-              {/* Validation Error */}
               <div className="mt-1 min-h-[1.25rem] text-sm text-red-600 dark:text-red-400">
-                {touched.new && errors.new ? errors.new : "\u00A0"}
+                <ValidationError message={touched.new ? errors.new : ""} />
               </div>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <Label>Xác nhận mật khẩu</Label>
+              <div className="mb-2">
+                <span className="block text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Xác nhận mật khẩu
+                </span>
+              </div>
               <div className="relative">
                 <Input
                   type={showConfirm ? "text" : "password"}
@@ -271,12 +319,15 @@ export default function ChangePasswordModal({
                   onBlur={() =>
                     setTouched((prev) => ({ ...prev, confirm: true }))
                   }
-                  className="pr-10"
+                  className="w-full rounded-lg border px-3 py-2 pr-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Nhập lại mật khẩu mới"
+                  aria-label="Xác nhận mật khẩu"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showConfirm ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
                   {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -294,10 +345,19 @@ export default function ChangePasswordModal({
               variant="outline"
               onClick={closeAndReset}
               disabled={loading}
+              className="px-4 py-2 rounded-md"
             >
               Hủy
             </Button>
-            <Button onClick={handleSave} disabled={!isFormValid || loading}>
+            <Button
+              onClick={handleSave}
+              disabled={!isFormValid || loading}
+              className={`px-4 py-2 rounded-md ${
+                loading
+                  ? "opacity-70 cursor-not-allowed"
+                  : "bg-sky-600 hover:bg-sky-700 text-white"
+              }`}
+            >
               {loading ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="animate-spin" size={18} />

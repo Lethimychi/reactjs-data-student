@@ -1,5 +1,6 @@
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import ChatBot from "../../components/chat/ChatBox";
 
 export default function DashboardLanding() {
   return (
@@ -25,6 +26,9 @@ export default function DashboardLanding() {
           </div>
         </div>
       </section>
+      <div>
+        <ChatBot userType={"admin"} />
+      </div>
     </>
   );
 }

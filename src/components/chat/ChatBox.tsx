@@ -3,7 +3,7 @@ import { MessageCircle, X, Send, Brain, User, Bot } from "lucide-react";
 import { askChatBot } from "../../utils/chat/api";
 import { getAuth } from "../../utils/share";
 
-type UserType = "student" | "teacher";
+type UserType = "student" | "teacher" | "admin";
 
 interface ChatBotProps {
   userType: UserType;
@@ -15,6 +15,12 @@ const quickActions: Record<UserType, string[]> = {
     "📅 Quản lý lịch",
     "📊 Thống kê lớp",
     "💡 Gợi ý giảng dạy",
+  ],
+  admin: [
+    "👥 Quản lý người dùng",
+    "📊 Báo cáo hệ thống",
+    "⚙️ Cài đặt",
+    "💡 Gợi ý",
   ],
 };
 
@@ -70,7 +76,7 @@ export default function ChatBot({ userType }: ChatBotProps) {
             timestamp: new Date(),
           },
         ]);
-      } catch (err) {
+      } catch {
         setMessages((prev) => [
           ...prev,
           {
