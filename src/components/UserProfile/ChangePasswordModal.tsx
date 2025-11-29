@@ -6,7 +6,7 @@ import Button from "../ui/button/Button";
 import { changePassword } from "../../utils/auth/api";
 import Toast from "../notification/toast";
 import ValidationError from "./helper/ValidationError";
-import Label from "../form/Label";
+// Note: Label import removed (not used)
 
 interface PasswordStrengthProps {
   value: string;
@@ -157,26 +157,90 @@ export default function ChangePasswordModal({
       }
     } catch (err: unknown) {
       // Extract API error message if available (safe cast)
-      let message = "Có lỗi xảy ra. Vui lòng thử lại.";
+      let rawMessage = "Có lỗi xảy ra. Vui lòng thử lại.";
       try {
         const e = err as {
-          response?: { data?: { detail?: string } };
+          response?: { data?: { detail?: string | string[] } };
           message?: string;
         };
-        message = e?.response?.data?.detail ?? e?.message ?? message;
+        const detail = e?.response?.data?.detail ?? e?.message;
+        if (Array.isArray(detail)) rawMessage = detail.join(" ");
+        else if (typeof detail === "string") rawMessage = detail;
       } catch {
         // ignore
       }
+
+      // Helper: try to extract a focused sentence mentioning password rules
+      const extractPasswordSentence = (msg: string) => {
+        if (!msg) return msg;
+        // Normalize spacing
+        let normalized = msg.replace(/\s+/g, " ").trim();
+
+        // Remove surrounding stray characters often present in API dumps like leading/trailing quotes, braces, or brackets
+        const stripEdges = (s: string) => {
+          const leadingChars = ['"', "'", "{", "[", "(", "<", " "];
+          const trailingChars = ['"', "'", "}", "]", ")", ">", " "];
+          let start = 0;
+          let end = s.length;
+          while (start < end && leadingChars.includes(s[start])) start++;
+          while (end > start && trailingChars.includes(s[end - 1])) end--;
+          return s.slice(start, end).trim();
+        };
+        normalized = stripEdges(normalized);
+        // Also remove trailing punctuation (use Unicode-aware rule so Vietnamese letters stay intact)
+        normalized = normalized.replace(/[^^\p{L}\p{N}\s]+$/u, "").trim();
+
+        // If the API returned a JSON-like fragment with a 'detail' key (e.g. 'detail":"...'),
+        // strip everything up to and including the colon so we only show the message.
+        const detailIdx = normalized.toLowerCase().indexOf("detail");
+        if (detailIdx >= 0) {
+          const colon = normalized.indexOf(":", detailIdx);
+          if (colon >= 0) {
+            normalized = normalized.slice(colon + 1).trim();
+            // remove wrapping quotes/braces left over
+            normalized = normalized.replace(/^['"\s]+|['"\s]+$/g, "").trim();
+          }
+        }
+
+        // Look for a sentence that contains key phrases like "Mật khẩu" and "chữ thường" (case-insensitive)
+        const re = /(M(ậ|a)t khẩu[^.?!;\n]*chữ thường[^.?!;\n]*)/i;
+        const m = normalized.match(re);
+        if (m && m[1]) return m[1].trim();
+
+        // Fallback: break into sentences by common delimiters and pick one containing any keyword
+        const parts = normalized
+          .split(/[.?!;\n]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const keywords = [
+          "mật khẩu",
+          "chữ thường",
+          "chữ hoa",
+          "ít nhất",
+          "ký tự",
+        ];
+        for (const p of parts) {
+          const low = p.toLowerCase();
+          if (keywords.some((k) => low.includes(k))) return p;
+        }
+
+        // Final fallback: return the original cleaned message (trimmed)
+        return normalized;
+      };
+
+      const message = extractPasswordSentence(rawMessage);
       console.error(message);
-      // Show server message in toast
+      // Show server message in toast (focused sentence)
       setToast({ message, type: "error" });
-      // Map to inline fields when possible
+
+      // Map to inline fields when possible (use focused message)
       const lower = message.toLowerCase();
       if (lower.includes("mật khẩu cũ") || lower.includes("cũ")) {
         setErrors((prev) => ({ ...prev, current: message }));
       }
       if (
         lower.includes("chữ thường") ||
+        lower.includes("chữ hoa") ||
         lower.includes("ký tự") ||
         lower.includes("ít nhất")
       ) {
@@ -220,7 +284,7 @@ export default function ChangePasswordModal({
         onClose={closeAndReset}
         className="max-w-[500px] m-4"
       >
-        <div className="relative w-full max-w-[500px] rounded-3xl bg-white p-5 dark:bg-gray-900 lg:p-8">
+        <div className="relative w-full max-w-[500px] rounded-3xl bg-white p-2 dark:bg-gray-900 lg:p-8">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-2xl font-semibold text-gray-800 dark:text-white">
@@ -240,7 +304,7 @@ export default function ChangePasswordModal({
             </button>
           </div>
 
-          <div className="mt-6 space-y-5">
+          <div className="mt-2 space-y-5">
             {/* Current Password */}
             <div>
               <div className="mb-2">
@@ -269,7 +333,7 @@ export default function ChangePasswordModal({
                   {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <div className="mt-1 min-h-[1.25rem] text-sm text-red-600 dark:text-red-400">
+              <div className=" min-h-[1.25rem] text-sm text-red-600 dark:text-red-400">
                 <ValidationError
                   message={touched.current ? errors.current : ""}
                 />
@@ -302,7 +366,7 @@ export default function ChangePasswordModal({
                   {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              <div className="mt-2">
+              <div className="">
                 <PasswordStrength value={newPassword} />
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   Yêu cầu: ít nhất 8 ký tự, có chữ thường và chữ hoa.

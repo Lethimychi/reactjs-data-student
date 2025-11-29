@@ -120,25 +120,15 @@ export function RateGpaAndPoint() {
             }}
             labelFormatter={(label) => `Học kỳ: ${label}`}
           />
-          <Scatter data={correlationData} fill="#8B5CF6">
+          <Scatter data={correlationData} fill="#2752ffff">
             {correlationData.map((_entry, index) => (
-              <Cell key={`cell-${index}`} fill="#8B5CF6" opacity={0.8} />
+              <Cell key={`cell-${index}`} fill="#2752ffff" opacity={0.8} />
             ))}
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
 
-      <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 dark:from-purple-900/20 to-pink-50 dark:to-pink-900/20 rounded-xl border border-purple-100 dark:border-purple-800">
-        <p className="text-sm text-slate-700 dark:text-slate-300">
-          <span className="font-semibold text-slate-800 dark:text-white">
-            Nhận xét:
-          </span>{" "}
-          <span className="text-purple-700 dark:text-purple-400 font-semibold">
-            Tương quan thuận rõ rệt
-          </span>{" "}
-          – điểm rèn luyện tăng khi GPA tăng.
-        </p>
-      </div>
+      
     </div>
   );
 }

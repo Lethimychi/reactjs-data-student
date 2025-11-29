@@ -1,19 +1,11 @@
 import { useModal } from "../../hooks/useModal";
 import { useUser } from "../../hooks/useUser"; // <- thêm dòng này
-import { Modal } from "../ui/modal";
-import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
-import Label from "../form/Label";
+
 import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const user = useUser(); // lấy user từ localStorage
-
-  const handleSave = () => {
-    console.log("Saving changes...");
-    closeModal();
-  };
 
   if (!user) return <div>User not found</div>;
 

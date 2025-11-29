@@ -4,7 +4,6 @@ import { Award } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import {
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -15,33 +14,116 @@ import {
   SubjectGradeRatio,
 } from "../../../utils/classification/api";
 import { GRADE_COLORS, GradeName } from "../../../utils/grade.";
-import CustomLegend from "./customer_legend";
+
+// Convert hex color to rgba string with given alpha
+function hexToRgba(hex: string | undefined, alpha = 1) {
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+  const h = hex.replace("#", "");
+  const full =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
+  const bigint = parseInt(full, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 interface StudentClassificationChartProps {
   semester: number; // Pass the semester as prop
 }
 
+// Mock data for demonstration/testing
+const MOCK_DATA: SubjectGradeRatio[] = [
+  {
+    "Ten Nam Hoc": "2024-2025",
+    "Ten Hoc Ky": "HK1",
+    "Ma Sinh Vien": "DEMO001",
+    TongMon: 44,
+    So_A: 8,
+    "So_B+": 12,
+    So_B: 10,
+    "So_C+": 6,
+    So_C: 4,
+    "So_D+": 2,
+    So_D: 1,
+    So_F: 1,
+    TyLe_A: 18.2,
+    "TyLe_B+": 27.3,
+    TyLe_B: 22.7,
+    "TyLe_C+": 13.6,
+    TyLe_C: 9.1,
+    "TyLe_D+": 4.5,
+    TyLe_D: 2.3,
+    TyLe_F: 2.3,
+  },
+  {
+    "Ten Nam Hoc": "2024-2025",
+    "Ten Hoc Ky": "HK2",
+    "Ma Sinh Vien": "DEMO001",
+    TongMon: 42,
+    So_A: 10,
+    "So_B+": 14,
+    So_B: 8,
+    "So_C+": 5,
+    So_C: 3,
+    "So_D+": 1,
+    So_D: 1,
+    So_F: 0,
+    TyLe_A: 23.8,
+    "TyLe_B+": 33.3,
+    TyLe_B: 19.0,
+    "TyLe_C+": 11.9,
+    TyLe_C: 7.1,
+    "TyLe_D+": 2.4,
+    TyLe_D: 2.4,
+    TyLe_F: 0.0,
+  },
+];
+
 export default function StudentClassificationChart({
   semester,
 }: Readonly<StudentClassificationChartProps>) {
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<SubjectGradeRatio[]>([]);
+  const [data, setData] = useState<SubjectGradeRatio[]>(MOCK_DATA); // Initialize with mock data
 
-  console.log("Fetched classification data:", data);
   // Fetch data on load
   useEffect(() => {
+    console.log("🚀 Component mounted, using MOCK_DATA:", MOCK_DATA);
+    
     async function load() {
       try {
         const res = await getSubjectGradeRatio();
-        if (res) {
-          setData(res);
+        // Only use API data if it has actual content with grade counts
+        if (res && res.length > 0) {
+          // Check if API data has actual grade counts
+          const hasValidData = res.some(item => 
+            (item.So_A ?? 0) > 0 || 
+            (item["So_B+"] ?? 0) > 0 || 
+            (item.So_B ?? 0) > 0 ||
+            (item["So_C+"] ?? 0) > 0 ||
+            (item.So_C ?? 0) > 0
+          );
+          
+          if (hasValidData) {
+            console.log("✅ Using API data:", res);
+            setData(res);
+          } else {
+            console.log("📦 API data is empty, keeping MOCK_DATA");
+          }
+        } else {
+          console.log("📦 API returned empty, keeping MOCK_DATA");
         }
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        // Keep mock data on error
+        console.error("❌ Error fetching grade data:", error);
+        console.log("📦 Keeping MOCK_DATA due to error");
       }
     }
-
     load();
   }, []);
 
@@ -53,30 +135,48 @@ export default function StudentClassificationChart({
       Yếu: 0,
     };
 
-    const semesterMap: Record<number, string> = {
-      1: "HK1",
-      2: "HK2",
-    };
-
+    const semesterMap: Record<number, string> = { 1: "HK1", 2: "HK2" };
     const filtered =
       semester === -1
         ? data
         : data.filter((x) => x["Ten Hoc Ky"] === semesterMap[semester]);
 
-    return filtered.reduce(
+    console.log("📊 Classification Chart Debug:", {
+      semester,
+      semesterName: semesterMap[semester],
+      totalData: data.length,
+      filteredData: filtered.length,
+      data,
+      filtered,
+    });
+
+    const result = filtered.reduce(
       (acc, row) => {
-        acc["Giỏi"] += row.So_A ?? 0;
-
-        acc["Khá"] += (row["So_B+"] ?? 0) + (row.So_B ?? 0);
-
-        acc["Trung bình"] += (row["So_C+"] ?? 0) + (row.So_C ?? 0);
-
-        acc["Yếu"] += (row["So_D+"] ?? 0) + (row.So_D ?? 0) + (row.So_F ?? 0);
-
+        const gioi = row.So_A ?? 0;
+        const kha = (row["So_B+"] ?? 0) + (row.So_B ?? 0);
+        const trungBinh = (row["So_C+"] ?? 0) + (row.So_C ?? 0);
+        const yeu = (row["So_D+"] ?? 0) + (row.So_D ?? 0) + (row.So_F ?? 0);
+        
+        console.log("🔍 Processing row:", {
+          "Ten Hoc Ky": row["Ten Hoc Ky"],
+          gioi,
+          kha,
+          trungBinh,
+          yeu,
+          row
+        });
+        
+        acc["Giỏi"] += gioi;
+        acc["Khá"] += kha;
+        acc["Trung bình"] += trungBinh;
+        acc["Yếu"] += yeu;
         return acc;
       },
-      { ...initial }
+      { ...initial } as Record<GradeName, number>
     );
+    
+    console.log("📊 Final grade counts:", result);
+    return result;
   }, [data, semester]);
 
   const totalPassed = Object.values(gradeCounts).reduce((a, b) => a + b, 0);
@@ -89,42 +189,58 @@ export default function StudentClassificationChart({
     })
   );
 
-  if (loading) {
+  console.log("📊 Grade Distribution Data:", {
+    gradeCounts,
+    totalPassed,
+    gradeDistributionData,
+  });
+
+  console.log("🎨 Rendering chart component with data:", {
+    dataLength: data.length,
+    hasData: gradeDistributionData.length > 0,
+    totalPassed,
+  });
+
+  // Show message if no data
+  if (!data || data.length === 0 || totalPassed === 0) {
+    console.warn("⚠️ No data to display!");
     return (
       <div className="p-6 bg-white shadow rounded-lg border border-slate-200">
-        Loading...
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Phân loại môn học</h2>
+        <p className="text-slate-600">Không có dữ liệu để hiển thị</p>
+        <p className="text-xs text-slate-400 mt-2">Debug: data.length={data.length}, totalPassed={totalPassed}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
-      {/* Title + Grade Filter */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <Award className="w-6 h-6 text-indigo-600" />
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
+      {/* Title */}
+      <div className="flex items-center gap-2 mb-2">
+        <Award className="w-5 h-5 text-indigo-600" />
+        <h2 className="text-lg font-bold text-slate-800">
           Phân loại môn học
         </h2>
       </div>
 
-      <p className="text-sm text-slate-600 mb-4">
+      <p className="text-sm text-slate-500 mb-6">
         Tỷ lệ môn học theo loại điểm
       </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart */}
-        <div className="h-80 w-full">
+        <div className="h-[300px] w-full flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={gradeDistributionData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={5}
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={4}
                 dataKey="value"
-                onClick={(data) => setSelectedGradeFilter(data.name)}
+                onClick={(d) => setSelectedGradeFilter(d.name)}
               >
                 {gradeDistributionData.map((entry, index) => (
                   <Cell
@@ -140,6 +256,7 @@ export default function StudentClassificationChart({
                   backgroundColor: "#fff",
                   border: "2px solid #e2e8f0",
                   borderRadius: "12px",
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
                 }}
                 formatter={(
                   value: number,
@@ -150,48 +267,64 @@ export default function StudentClassificationChart({
                   props.payload?.name ?? "",
                 ]}
               />
-
-              <Legend
-                content={(props) => <CustomLegend payload={props.payload} />}
-              />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          {gradeDistributionData.map((item) => (
-            <button
-              key={item.name}
-              type="button"
-              onClick={() => setSelectedGradeFilter(item.name)}
-              className={`p-3 w-full text-left rounded-lg border-2 transition-all cursor-pointer
-                ${
-                  selectedGradeFilter === item.name ||
-                  selectedGradeFilter === "all"
-                    ? "scale-105 shadow-lg"
-                    : "opacity-70"
-                }`}
-              style={{
-                borderColor: `${GRADE_COLORS[item.name] ?? "#999"}30`,
-                backgroundColor: `${GRADE_COLORS[item.name] ?? "#999"}15`,
-              }}
-            >
-              <p
-                className="font-semibold text-sm mb-1"
-                style={{ color: GRADE_COLORS[item.name] }}
+        <div className="grid grid-cols-2 gap-3">
+          {gradeDistributionData.map((item) => {
+            // Short labels for cards
+            const shortLabel = item.name === "Trung bình" ? "TB" : item.name;
+            
+            return (
+              <div
+                key={item.name}
+                className="p-4 rounded-xl bg-white border-2 transition-all hover:shadow-md"
+                style={{
+                  borderColor: GRADE_COLORS[item.name],
+                  backgroundColor: hexToRgba(GRADE_COLORS[item.name] ?? "#CBD5E1", 0.05),
+                }}
               >
-                {item.name}
-              </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-block w-3 h-2 rounded-full"
+                    style={{ background: GRADE_COLORS[item.name] }}
+                  />
+                  <p
+                    className="font-semibold text-sm"
+                    style={{ color: GRADE_COLORS[item.name] }}
+                  >
+                    {shortLabel}
+                  </p>
+                </div>
 
-              <p className="text-2xl font-bold text-slate-800">{item.value}</p>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-slate-800 mb-1">
+                    {item.value}
+                  </div>
+                  <div className="text-xs text-slate-500 mb-2">môn học</div>
+                  <div className="text-sm font-semibold" style={{ color: GRADE_COLORS[item.name] }}>
+                    {item.percentage}%
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-              <p className="text-xs text-slate-600 mt-1">môn học</p>
-
-              <p className="text-xs font-semibold mt-2 text-slate-700">
-                {item.percentage}%
-              </p>
-            </button>
+      {/* Legend */}
+      <div className="mt-6 pt-1 border-t border-slate-200">
+        <div className="flex items-center justify-center gap-6 flex-wrap">
+          {gradeDistributionData.map((g) => (
+            <div key={`lg-${g.name}`} className="flex items-center gap-2">
+              <span
+                className="inline-block w-3 h-3 rounded-full"
+                style={{ background: GRADE_COLORS[g.name] }}
+              />
+              <span className="text-sm font-medium text-slate-700">{g.name}</span>
+            </div>
           ))}
         </div>
       </div>

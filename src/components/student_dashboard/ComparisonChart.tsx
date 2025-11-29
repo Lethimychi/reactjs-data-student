@@ -35,17 +35,20 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
   const dynamicComparisonMax = getDynamicAxisMax(allScores, 6, 1);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0] h-113">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <TrendingUp className="w-6 h-6 text-[#3B82F6]" />
-        </div>
-        <h2 className="text-xl font-semibold text-[#1E293B]">
+    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
+      {/* Title */}
+      <div className="flex items-center gap-2 mb-2">
+        <TrendingUp className="w-5 h-5 text-indigo-600" />
+        <h2 className="text-lg font-bold text-slate-800">
           So sánh với điểm trung bình lớp
         </h2>
       </div>
 
-      <ResponsiveContainer width="100%" height={320}>
+      <p className="text-sm text-slate-500 mb-6">
+        Điểm số của bạn so với trung bình lớp
+      </p>
+
+      <ResponsiveContainer width="100%" height={300}>
         <ComposedChart
           data={comparisonData}
           margin={{ top: 10, right: 10, left: -20, bottom: 10 }}
@@ -95,6 +98,20 @@ export const ComparisonChart: React.FC<ComparisonChartProps> = ({
           />
         </ComposedChart>
       </ResponsiveContainer>
+
+      {/* Legend */}
+      <div className="mt-6 pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-center gap-6 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded" style={{ backgroundColor: COLORS[1] }} />
+            <span className="text-sm font-medium text-slate-700">Điểm của bạn</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-1 rounded" style={{ backgroundColor: "#1E40AF" }} />
+            <span className="text-sm font-medium text-slate-700">Điểm trung bình lớp</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
