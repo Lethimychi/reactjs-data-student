@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, Brain, User, Bot } from "lucide-react";
+import { askChatBot } from "../../utils/chat/api";
+import { getAuth } from "../../utils/share";
 
 type UserType = "student" | "teacher";
 
@@ -16,26 +18,15 @@ const quickActions: Record<UserType, string[]> = {
   ],
 };
 
-const getAIResponse = (userType: UserType) => {
-  const responses: Record<UserType, string[]> = {
-    student: [
-      "Mình đã hiểu câu hỏi của bạn rồi! 📚",
-      "Bạn muốn mình giải thích bài học chi tiết hơn không?",
-      "Mình có thể dự đoán điểm trung bình của bạn nhé!",
-    ],
-    teacher: [
-      "Bạn có thể nhập điểm cho học sinh ngay bây giờ.",
-      "Mình có thể tổng hợp thống kê lớp học cho bạn 📊",
-      "Bạn muốn nhận gợi ý phương pháp giảng dạy không?",
-    ],
-  };
-
-  const arr = responses[userType];
-  return arr[Math.floor(Math.random() * arr.length)];
-};
-
 export default function ChatBot({ userType }: ChatBotProps) {
   const [open, setOpen] = useState(false);
+  const [sessionId] = useState(() => {
+    // Generate a simple session ID
+    const user = getAuth();
+    return user.userId
+      ? `user_${user.userId}`
+      : `session_${Math.random().toString(36).substring(2, 10)}`;
+  });
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -63,17 +54,35 @@ export default function ChatBot({ userType }: ChatBotProps) {
     setTyping(true);
 
     // Simulate AI response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          sender: "ai",
-          text: getAIResponse(userType),
-          timestamp: new Date(),
-        },
-      ]);
-      setTyping(false);
+    setTimeout(async () => {
+      try {
+        const response = await askChatBot({
+          question: input,
+          session_id: sessionId,
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender: "ai",
+            text: response?.answer || "Xin lỗi, mình không hiểu câu hỏi 😅",
+            timestamp: new Date(),
+          },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now() + 1,
+            sender: "ai",
+            text: "❌ Lỗi khi gọi AI. Vui lòng thử lại!",
+            timestamp: new Date(),
+          },
+        ]);
+      } finally {
+        setTyping(false);
+      }
     }, 1200);
   };
 
@@ -102,7 +111,7 @@ export default function ChatBot({ userType }: ChatBotProps) {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="group relative p-5 rounded-full bg-linear-to-br from-[#1970FB] to-[#3B82F6]
+          className="group relative p-4 rounded-full bg-linear-to-br from-[#1970FB] to-[#3B82F6]
                      hover:from-blue-700 hover:to-indigo-800 shadow-2xl text-white 
                      transition-all duration-300 hover:scale-110 active:scale-95
                     "
