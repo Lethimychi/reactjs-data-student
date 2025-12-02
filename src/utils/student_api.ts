@@ -19,6 +19,7 @@ export type DetailedCourseApiRecord = {
   "Ma Sinh Vien"?: string;
   "Ten Nam Hoc"?: string;
   "Ten Hoc Ky"?: string;
+  "Xep Loai"?: string;
   "Ten Mon Hoc"?: string;
   "So Tin Chi"?: string | number;
   "Diem Chuyen Can"?: string | number;
@@ -94,6 +95,7 @@ export async function getStudentDetailedCourses(): Promise<DetailedCourseApiResp
     const data = await fetchWithAuth<DetailedCourseApiResponse>(
       "/api/sinhvien/diem-chi-tiet-tung-mon-hoc-sinh-vien-da-hoc"
     );
+    console.log("✅ API điểm chi tiết trả về:", data);
     return data;
   } catch (err) {
     console.error("❌ Lỗi gọi API điểm chi tiết:", err);
