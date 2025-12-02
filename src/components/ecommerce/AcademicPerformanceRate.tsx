@@ -4,6 +4,7 @@ import {
   SubjectPassRate,
   AdvisorDashboardData,
 } from "../../utils/ClassLecturerApi";
+import FilterHelper from "../UserProfile/helper/BreakSemesterFilter";
 
 export default function TopFailingSubjectsChart({
   className,
@@ -26,7 +27,7 @@ export default function TopFailingSubjectsChart({
     let mounted = true;
     const cls = (selectedClassName as string) || undefined;
     const sem = (selectedSemesterDisplayName as string) || undefined;
-
+    var separateSemester = FilterHelper(sem || "");
     const load = async () => {
       if (!cls || !sem) {
         setData([]);
@@ -63,11 +64,17 @@ export default function TopFailingSubjectsChart({
       setError(null);
       try {
         const res = await fetchPassRateBySubject(cls, sem);
+        console.log("Fetched pass rate by subject (all):", separateSemester);
+        const filtered = res.filter(
+          (x) =>
+            x.tenNamHoc === separateSemester.year &&
+            x.tenHocKy === separateSemester.semester
+        );
         if (!mounted) return;
         if (!res || res.length === 0) {
           setData([]);
         } else {
-          const mapped = res.map((r) => ({ ...r }));
+          const mapped = filtered.map((r) => ({ ...r }));
           mapped.sort((a, b) => (b.tiLeQuaMon ?? 0) - (a.tiLeQuaMon ?? 0));
           setData(mapped);
         }

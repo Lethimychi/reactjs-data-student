@@ -75,3 +75,57 @@ export async function getSubjectGradeRatio(): Promise<
     throw err;
   }
 }
+
+export interface SubjectGradeRatioGV {
+  "Ten Nam": string;
+  "Ten Nam Hoc": string;
+  "Ten Hoc Ky": string;
+
+  TyLe_Gioi: number;
+  TyLe_Kha: number;
+  TyLe_TB: number;
+  TyLe_Yeu: number;
+
+  TongMon: number;
+}
+
+export async function getSubjectGradeRatioGV(
+  masv: string
+): Promise<SubjectGradeRatioGV[] | null> {
+  try {
+    const auth = getAuth();
+    const url = `${API_BASE_URL}/api/giangvien/ty-le-mon-hoc-dat-loai-cua-sinh-vien`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `${auth.tokenType} ${auth.token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "69420",
+      },
+      body: JSON.stringify({ masv }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`API Error ${res.status}: ${text}`);
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(`Unexpected non-JSON response: ${text}`);
+    }
+
+    const data = await res.json();
+
+    if (Array.isArray(data)) return data as SubjectGradeRatioGV[];
+    if (data && typeof data === "object")
+      return [data] as SubjectGradeRatioGV[];
+
+    return [];
+  } catch (err) {
+    console.error("❌ Lỗi gọi API:", err);
+    throw err;
+  }
+}

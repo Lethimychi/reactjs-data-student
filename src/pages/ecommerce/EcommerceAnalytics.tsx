@@ -82,7 +82,9 @@ export default function EcommerceAnalytics({
     []
   );
   const [selectedSemesterDisplayName, setSelectedSemesterDisplayName] =
-    useState<string | null>(propSemester ?? null);
+    useState<string | null>(propSemester ?? "");
+
+  console.log("Selected semester:", selectedSemesterDisplayName);
   const [studentInfo, setStudentInfo] = useState<Record<
     string,
     unknown
@@ -96,7 +98,8 @@ export default function EcommerceAnalytics({
   const [creditsData, setCreditsData] = useState<unknown>(null);
 
   const location = useLocation();
-  const masvParam = new URLSearchParams(location.search).get("masv") ?? undefined;
+  const masvParam =
+    new URLSearchParams(location.search).get("masv") ?? undefined;
   const [isSemesterOpen, setIsSemesterOpen] = useState(false);
   const semBtnRef = useRef<HTMLButtonElement | null>(null);
   // extract masv query param
@@ -662,7 +665,11 @@ export default function EcommerceAnalytics({
         {/* Large charts row: Pie (donut) + Bar */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
           <div className="h-full">
-            <CurrentVisitsDonut className="h-full" />
+            <CurrentVisitsDonut
+              mssv={masvParam}
+              semester={selectedSemesterDisplayName ?? ""}
+              className="h-full"
+            />
           </div>
 
           <div className="h-full">

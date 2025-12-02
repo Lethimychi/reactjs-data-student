@@ -1,38 +1,127 @@
+import { useEffect, useState } from "react";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { COLORS } from "../../utils/colors";
+import { getSubjectGradeRatioGV } from "../../utils/classification/api";
 
 interface CurrentVisitsDonutProps {
   className?: string;
+  mssv?: string;
+  semester?: string;
 }
-
-const series = [43.8, 35.3, 18.8, 6.3];
-const labels = ["America", "Asia", "Europe", "Africa"];
 
 export default function CurrentVisitsDonut({
   className = "",
+  semester = "HK2 - 2022 - 2023",
+  mssv = "",
 }: CurrentVisitsDonutProps) {
+  const [loading, setLoading] = useState(true);
+  const [series, setSeries] = useState<number[]>([]);
+  const [labels] = useState(["Giỏi", "Khá", "TB", "Yếu"]);
+
+  async function fetchData() {
+    if (!mssv) return;
+
+    setLoading(true);
+    try {
+      const data = await getSubjectGradeRatioGV(mssv);
+
+      console.log(semester);
+      if (!data || data.length === 0) {
+        setSeries([0, 0, 0, 0]);
+        return;
+      }
+
+      const [hocKy, namStart, namEnd] = semester.split(" - ");
+      const filtered = data.filter(
+        (d) =>
+          d["Ten Hoc Ky"] === hocKy &&
+          d["Ten Nam Hoc"] === namStart + " - " + namEnd
+      );
+
+      console.log("Filtered:", filtered);
+
+      // If no match → empty chart
+      if (filtered.length === 0) {
+        setSeries([0, 0, 0, 0]);
+        return;
+      }
+
+      // -----------------------------
+      // 3) Sum up the values
+      // -----------------------------
+      let gioi = 0,
+        kha = 0,
+        tb = 0,
+        yeu = 0;
+
+      filtered.forEach((d) => {
+        gioi += d.TyLe_Gioi;
+        kha += d.TyLe_Kha;
+        tb += d.TyLe_TB;
+        yeu += d.TyLe_Yeu;
+      });
+
+      // -----------------------------
+      // 4) Convert to percent
+      // -----------------------------
+      const total = gioi + kha + tb + yeu || 1;
+
+      const result = [
+        (gioi / total) * 100,
+        (kha / total) * 100,
+        (tb / total) * 100,
+        (yeu / total) * 100,
+      ];
+
+      setSeries(result);
+    } catch (err) {
+      console.error("Lỗi tải dữ liệu donut:", err);
+      setSeries([0, 0, 0, 0]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchData();
+  }, [mssv, semester]);
+
   const options: ApexOptions = {
     chart: {
       type: "donut",
       toolbar: { show: false },
     },
-    stroke: {
-      width: 0,
-    },
+
+    stroke: { width: 0 },
     legend: {
       position: "bottom",
       fontSize: "14px",
       fontFamily: "Inter, sans-serif",
-      labels: {
-        colors: COLORS[1],
+      labels: { colors: COLORS[1] },
+    },
+    tooltip: {
+      enabled: true,
+      shared: false,
+      followCursor: false,
+      fillSeriesColor: false,
+      theme: "light",
+
+      style: {
+        fontSize: "14px",
+        fontFamily: "Inter, sans-serif",
+      },
+
+      y: {
+        formatter: (value: number) => `${value.toFixed(1)}%`,
+      },
+
+      marker: {
+        show: true,
       },
     },
-    dataLabels: {
-      enabled: false,
-    },
+    dataLabels: { enabled: false },
     labels,
-    // use shared blue palette (first 4 colors)
     colors: COLORS.slice(0, 4),
     plotOptions: {
       pie: {
@@ -54,7 +143,7 @@ export default function CurrentVisitsDonut({
             },
             total: {
               show: true,
-              label: "Visits",
+              label: "Tổng",
               formatter: () => "100%",
             },
           },
@@ -65,7 +154,7 @@ export default function CurrentVisitsDonut({
 
   return (
     <div
-      className={`rounded-2xl border border-blue-100  p-6 dark:border-sky-800 dark:bg-white ${className}`}
+      className={`rounded-2xl border border-blue-100  p-6 dark:border-red dark:bg-white ${className}`}
     >
       <header className="flex items-start justify-between">
         <div>
@@ -76,7 +165,11 @@ export default function CurrentVisitsDonut({
       </header>
 
       <div className="mt-6 -mx-4">
-        <Chart options={options} series={series} type="donut" height={280} />
+        {loading ? (
+          <div className="text-center py-10 text-blue-600">Đang tải...</div>
+        ) : (
+          <Chart options={options} series={series} type="donut" height={280} />
+        )}
       </div>
     </div>
   );
