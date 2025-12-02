@@ -151,6 +151,7 @@ export async function fetchStudentRegisteredCredits(
         body: JSON.stringify(payload),
       }
     );
+    console.info("fetchStudentRegisteredCredits data:", data);
     return data;
   } catch (e) {
     console.error("fetchStudentRegisteredCredits error", e);
@@ -197,6 +198,45 @@ export async function fetchStudentCourseScores(
   }
 }
 
+const STUDENT_COMPARE_ENDPOINT =
+  "/api/giangvien/so-sanh-diem-trung-binh-mon-hoc-cua-sinh-vien-voi-lop";
+
+export async function fetchStudentCompareScores(
+  masv: string,
+  semesterDisplayName?: string
+): Promise<unknown> {
+  try {
+    const payload: Record<string, unknown> = { masv };
+    if (semesterDisplayName) {
+      payload.semester = semesterDisplayName;
+      const parts = String(semesterDisplayName).split(" - ");
+      if (parts.length === 2) {
+        payload["Ten Hoc Ky"] = parts[0].trim();
+        payload["Ten Nam Hoc"] = parts[1].trim();
+        payload.year = parts[1].trim();
+        payload.term = parts[0].trim();
+      } else {
+        payload["Ten Hoc Ky"] = semesterDisplayName.trim();
+        payload.term = semesterDisplayName.trim();
+      }
+      payload["Ma Hoc Ky"] = String(semesterDisplayName)
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .match(/HK\d+/i)?.[0];
+    }
+    console.debug("fetchStudentCompareScores payload:", payload);
+
+    const data = await fetchWithAuth<unknown>(STUDENT_COMPARE_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return data;
+  } catch (e) {
+    console.error("fetchStudentCompareScores error", e);
+    return null;
+  }
+}
+
 const STUDENT_DRL_ENDPOINT =
   "/api/giangvien/diem-ren-luyen-cua-sinh-vien-trong-tung-hoc-ky";
 
@@ -223,5 +263,6 @@ export default {
   fetchStudentGpaTrend,
   fetchStudentRegisteredCredits,
   fetchStudentCourseScores,
+  fetchStudentCompareScores,
   fetchStudentDRL,
 };

@@ -2,16 +2,21 @@ import { useEffect, useState } from "react";
 import {
   fetchPassRateBySubject,
   SubjectPassRate,
+  AdvisorDashboardData,
 } from "../../utils/ClassLecturerApi";
 
 export default function TopFailingSubjectsChart({
   className,
   selectedClassName,
   selectedSemesterDisplayName,
+  advisorData,
+  loading: advisorLoading,
 }: {
   className?: string;
   selectedClassName?: string | null;
   selectedSemesterDisplayName?: string | null;
+  advisorData?: AdvisorDashboardData | null;
+  loading?: boolean;
 }) {
   const [data, setData] = useState<SubjectPassRate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,6 +32,33 @@ export default function TopFailingSubjectsChart({
         setData([]);
         return;
       }
+
+      // Prefer advisorData if available
+      if (
+        advisorData &&
+        Array.isArray(advisorData.passRateBySubject) &&
+        advisorData.passRateBySubject.length
+      ) {
+        try {
+          const mapped = advisorData.passRateBySubject.map(
+            (p) =>
+              ({
+                tenMonHoc: p.subject || "",
+                tongSVMon: undefined,
+                svQuaMon: undefined,
+                tiLeQuaMon: (p.passRate ?? 0) / 100,
+              } as SubjectPassRate)
+          );
+          mapped.sort((a, b) => (b.tiLeQuaMon ?? 0) - (a.tiLeQuaMon ?? 0));
+          setData(mapped);
+          setLoading(false);
+          setError(null);
+          return;
+        } catch (err) {
+          console.error("AcademicPerformanceRate mapping error:", err);
+        }
+      }
+
       setLoading(true);
       setError(null);
       try {
@@ -35,10 +67,7 @@ export default function TopFailingSubjectsChart({
         if (!res || res.length === 0) {
           setData([]);
         } else {
-          // Normalize into display-friendly structure and sort by rate desc
-          const mapped = res.map((r) => ({
-            ...r,
-          }));
+          const mapped = res.map((r) => ({ ...r }));
           mapped.sort((a, b) => (b.tiLeQuaMon ?? 0) - (a.tiLeQuaMon ?? 0));
           setData(mapped);
         }
@@ -51,11 +80,23 @@ export default function TopFailingSubjectsChart({
       }
     };
 
+    // If parent advisorLoading is true, reflect loading state
+    if (advisorLoading) {
+      setLoading(true);
+      setData([]);
+      return;
+    }
+
     void load();
     return () => {
       mounted = false;
     };
-  }, [selectedClassName, selectedSemesterDisplayName]);
+  }, [
+    selectedClassName,
+    selectedSemesterDisplayName,
+    advisorData,
+    advisorLoading,
+  ]);
 
   return (
     <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
@@ -86,7 +127,13 @@ export default function TopFailingSubjectsChart({
             Không có dữ liệu
           </div>
         ) : (
-          <div className="space-y-4">
+          <div
+            className={
+              data.length > 5
+                ? "space-y-4 overflow-y-auto max-h-72 pr-2"
+                : "space-y-4"
+            }
+          >
             {data.map((d) => {
               const ratePercent = (d.tiLeQuaMon ?? 0) * 100;
               const failed = (d.tongSVMon ?? 0) - (d.svQuaMon ?? 0);

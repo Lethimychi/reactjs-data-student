@@ -399,6 +399,17 @@ export const useCoursesFetch = () => {
                 ? courseNameRaw
                 : courseCode;
 
+            // compute 4-point score (try explicit fields first)
+            const he4Keys = ["Diem He4", "DiemHe4", "He4", "Diem_H4", "He_4"];
+            let score4 = getNumericField(rec, he4Keys as string[]);
+            if (!score4 && typeof score === "number" && !Number.isNaN(score)) {
+              score4 = Math.max(0, Math.min(4, (score / 10) * 4));
+            }
+
+            // extract classification / letter
+            const letterKeys = ["Xep Loai", "XepLoai", "Loai", "Grade", "Xep_Loai"];
+            const letterCandidate = getStringField(rec, letterKeys as string[]);
+
             return {
               course: String(finalCourseName ?? "-"),
               score,
@@ -406,6 +417,8 @@ export const useCoursesFetch = () => {
               status,
               midScore: mid || undefined,
               finalScore: final || undefined,
+              score4: typeof score4 === "number" ? Number(score4.toFixed(2)) : undefined,
+              letter: letterCandidate || undefined,
             } as Course;
           });
 

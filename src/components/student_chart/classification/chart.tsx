@@ -2,13 +2,7 @@
 
 import { Award } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import {
   getSubjectGradeRatio,
   SubjectGradeRatio,
@@ -94,21 +88,22 @@ export default function StudentClassificationChart({
   // Fetch data on load
   useEffect(() => {
     console.log("🚀 Component mounted, using MOCK_DATA:", MOCK_DATA);
-    
+
     async function load() {
       try {
         const res = await getSubjectGradeRatio();
         // Only use API data if it has actual content with grade counts
         if (res && res.length > 0) {
           // Check if API data has actual grade counts
-          const hasValidData = res.some(item => 
-            (item.So_A ?? 0) > 0 || 
-            (item["So_B+"] ?? 0) > 0 || 
-            (item.So_B ?? 0) > 0 ||
-            (item["So_C+"] ?? 0) > 0 ||
-            (item.So_C ?? 0) > 0
+          const hasValidData = res.some(
+            (item) =>
+              (item.So_A ?? 0) > 0 ||
+              (item["So_B+"] ?? 0) > 0 ||
+              (item.So_B ?? 0) > 0 ||
+              (item["So_C+"] ?? 0) > 0 ||
+              (item.So_C ?? 0) > 0
           );
-          
+
           if (hasValidData) {
             console.log("✅ Using API data:", res);
             setData(res);
@@ -156,16 +151,16 @@ export default function StudentClassificationChart({
         const kha = (row["So_B+"] ?? 0) + (row.So_B ?? 0);
         const trungBinh = (row["So_C+"] ?? 0) + (row.So_C ?? 0);
         const yeu = (row["So_D+"] ?? 0) + (row.So_D ?? 0) + (row.So_F ?? 0);
-        
+
         console.log("🔍 Processing row:", {
           "Ten Hoc Ky": row["Ten Hoc Ky"],
           gioi,
           kha,
           trungBinh,
           yeu,
-          row
+          row,
         });
-        
+
         acc["Giỏi"] += gioi;
         acc["Khá"] += kha;
         acc["Trung bình"] += trungBinh;
@@ -174,7 +169,7 @@ export default function StudentClassificationChart({
       },
       { ...initial } as Record<GradeName, number>
     );
-    
+
     console.log("📊 Final grade counts:", result);
     return result;
   }, [data, semester]);
@@ -206,9 +201,13 @@ export default function StudentClassificationChart({
     console.warn("⚠️ No data to display!");
     return (
       <div className="p-6 bg-white shadow rounded-lg border border-slate-200">
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Phân loại môn học</h2>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">
+          Phân loại môn học
+        </h2>
         <p className="text-slate-600">Không có dữ liệu để hiển thị</p>
-        <p className="text-xs text-slate-400 mt-2">Debug: data.length={data.length}, totalPassed={totalPassed}</p>
+        <p className="text-xs text-slate-400 mt-2">
+          Debug: data.length={data.length}, totalPassed={totalPassed}
+        </p>
       </div>
     );
   }
@@ -218,9 +217,7 @@ export default function StudentClassificationChart({
       {/* Title */}
       <div className="flex items-center gap-2 mb-2">
         <Award className="w-5 h-5 text-indigo-600" />
-        <h2 className="text-lg font-bold text-slate-800">
-          Phân loại môn học
-        </h2>
+        <h2 className="text-lg font-bold text-slate-800">Phân loại môn học</h2>
       </div>
 
       <p className="text-sm text-slate-500 mb-6">
@@ -246,7 +243,16 @@ export default function StudentClassificationChart({
                   <Cell
                     key={`cell-${index}`}
                     fill={GRADE_COLORS[entry.name]}
-                    style={{ cursor: "pointer" }}
+                    style={{
+                      cursor: "pointer",
+                      // Dim non-selected slices when a filter is active
+                      opacity:
+                        selectedGradeFilter === "all" ||
+                        selectedGradeFilter === entry.name
+                          ? 1
+                          : 0.45,
+                      transition: "opacity 160ms ease",
+                    }}
                   />
                 ))}
               </Pie>
@@ -276,14 +282,17 @@ export default function StudentClassificationChart({
           {gradeDistributionData.map((item) => {
             // Short labels for cards
             const shortLabel = item.name === "Trung bình" ? "TB" : item.name;
-            
+
             return (
               <div
                 key={item.name}
                 className="p-4 rounded-xl bg-white border-2 transition-all hover:shadow-md"
                 style={{
                   borderColor: GRADE_COLORS[item.name],
-                  backgroundColor: hexToRgba(GRADE_COLORS[item.name] ?? "#CBD5E1", 0.05),
+                  backgroundColor: hexToRgba(
+                    GRADE_COLORS[item.name] ?? "#CBD5E1",
+                    0.05
+                  ),
                 }}
               >
                 <div className="flex items-center gap-2 mb-3">
@@ -304,7 +313,10 @@ export default function StudentClassificationChart({
                     {item.value}
                   </div>
                   <div className="text-xs text-slate-500 mb-2">môn học</div>
-                  <div className="text-sm font-semibold" style={{ color: GRADE_COLORS[item.name] }}>
+                  <div
+                    className="text-sm font-semibold"
+                    style={{ color: GRADE_COLORS[item.name] }}
+                  >
                     {item.percentage}%
                   </div>
                 </div>
@@ -323,7 +335,9 @@ export default function StudentClassificationChart({
                 className="inline-block w-3 h-3 rounded-full"
                 style={{ background: GRADE_COLORS[g.name] }}
               />
-              <span className="text-sm font-medium text-slate-700">{g.name}</span>
+              <span className="text-sm font-medium text-slate-700">
+                {g.name}
+              </span>
             </div>
           ))}
         </div>

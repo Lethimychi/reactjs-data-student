@@ -80,16 +80,17 @@ export default function RecentOrders({
 
     // Populate the map from the query data (this was missing previously)
     const rows = Array.isArray(studentsQuery.data) ? studentsQuery.data : [];
-    
+
     // Filter by semester if masv is present (course scores mode)
-    const filteredRows = masv && selectedSemesterDisplayName
-      ? rows.filter((r) => {
-          const term = r["Ten Hoc Ky"] ?? r["TenHocKy"] ?? "";
-          const year = r["Ten Nam Hoc"] ?? r["TenNamHoc"] ?? "";
-          const semesterStr = `${term} - ${year}`;
-          return semesterStr.trim() === selectedSemesterDisplayName.trim();
-        })
-      : rows;
+    const filteredRows =
+      masv && selectedSemesterDisplayName
+        ? rows.filter((r) => {
+            const term = r["Ten Hoc Ky"] ?? r["TenHocKy"] ?? "";
+            const year = r["Ten Nam Hoc"] ?? r["TenNamHoc"] ?? "";
+            const semesterStr = `${term} - ${year}`;
+            return semesterStr.trim() === selectedSemesterDisplayName.trim();
+          })
+        : rows;
     for (const r of filteredRows) {
       const id = String(
         r["Ma Sinh Vien"] ??
@@ -160,6 +161,8 @@ export default function RecentOrders({
     setPage(1);
   }, [
     selectedClassName,
+    selectedSemesterDisplayName,
+    masv,
     studentsQuery.isLoading,
     studentsQuery.isError,
     studentsQuery.data,
@@ -180,7 +183,7 @@ export default function RecentOrders({
     displayStudents && displayStudents.length
       ? displayStudents
           .slice()
-         
+
           .slice(start, start + pageSize)
       : [];
 
@@ -212,12 +215,7 @@ export default function RecentOrders({
               >
                 Số tín chỉ
               </TableCell>
-              <TableCell
-                isHeader
-                className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
-              >
-                Điểm chuyên cần
-              </TableCell>
+
               <TableCell
                 isHeader
                 className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
@@ -234,6 +232,19 @@ export default function RecentOrders({
                 isHeader
                 className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
               >
+                Điểm trung bình
+              </TableCell>
+              <TableCell
+                isHeader
+                className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
+              >
+                Điểm hệ 4
+              </TableCell>
+
+              <TableCell
+                isHeader
+                className="py-3 font-semibold text-gray-700 text-start text-base dark:text-gray-300"
+              >
                 Trạng thái
               </TableCell>
             </TableRow>
@@ -244,7 +255,7 @@ export default function RecentOrders({
             {studentsQuery.isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-6 text-center text-sm text-gray-500"
                 >
                   Đang tải...
@@ -253,7 +264,7 @@ export default function RecentOrders({
             ) : studentsQuery.isError ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-6 text-center text-sm text-red-600"
                 >
                   {String(
@@ -318,32 +329,6 @@ export default function RecentOrders({
                       })()}
                     </TableCell>
 
-                    {/* Điểm chuyên cần */}
-                    <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                      {(() => {
-                        const keys = [
-                          "Diem Chuyen Can",
-                          "DiemChuyenCan",
-                          "Diem_CC",
-                          "ChuyenCan",
-                        ];
-                        for (const k of keys) {
-                          const v = s[k];
-                          if (
-                            v !== undefined &&
-                            v !== null &&
-                            String(v).trim() !== ""
-                          )
-                            return String(v);
-                        }
-                        return (
-                          <Badge size="sm" color="info">
-                            -
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-
                     {/* Điểm giữa kỳ */}
                     <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                       {(() => {
@@ -392,6 +377,117 @@ export default function RecentOrders({
                               ? v.toFixed(2)
                               : String(v);
                         }
+                        return (
+                          <Badge size="sm" color="info">
+                            -
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    {/* Điểm trung bình */}
+                    <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {(() => {
+                        // Prefer server-provided average when available
+                        const dtb =
+                          s["Diem Trung Binh"] ??
+                          s["DiemTB"] ??
+                          s["Diem"] ??
+                          s["DiemTrungBinh"];
+                        const dtbNum =
+                          typeof dtb === "number"
+                            ? dtb
+                            : Number(
+                                String(dtb ?? "").replace(/[^0-9.-]/g, "")
+                              );
+                        if (Number.isFinite(dtbNum)) return dtbNum.toFixed(2);
+
+                        // fallback: compute from mid & final
+                        const midKeys = [
+                          "Diem Giua Ky",
+                          "DiemGiuaKy",
+                          "DiemGiua",
+                          "Diem Giua",
+                        ];
+                        const finalKeys = [
+                          "Diem Cuoi Ky",
+                          "DiemCuoiKy",
+                          "DiemCuoi",
+                          "Diem Cuoi",
+                        ];
+
+                        const getNumber = (keys: string[]) => {
+                          for (const k of keys) {
+                            const v = s[k];
+                            if (
+                              v !== undefined &&
+                              v !== null &&
+                              String(v).trim() !== ""
+                            ) {
+                              if (typeof v === "number") return v;
+                              const parsed = Number(
+                                String(v).replace(/[^0-9.-]/g, "")
+                              );
+                              if (Number.isFinite(parsed)) return parsed;
+                            }
+                          }
+                          return null as number | null;
+                        };
+
+                        const mid = getNumber(midKeys);
+                        const final = getNumber(finalKeys);
+                        if (mid !== null && final !== null) {
+                          return ((mid + final) / 2).toFixed(2);
+                        }
+                        if (mid !== null) return mid.toFixed(2);
+                        if (final !== null) return final.toFixed(2);
+
+                        return (
+                          <Badge size="sm" color="info">
+                            -
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+
+                    {/* Điểm hệ 4 */}
+                    <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                      {(() => {
+                        const he4Keys = [
+                          "Diem He4",
+                          "DiemHe4",
+                          "He4",
+                          "Diem_H4",
+                          "DiemHe_4",
+                        ];
+                        for (const k of he4Keys) {
+                          const v = s[k];
+                          if (
+                            v !== undefined &&
+                            v !== null &&
+                            String(v).trim() !== ""
+                          )
+                            return typeof v === "number"
+                              ? (v as number).toFixed(2)
+                              : String(v);
+                        }
+
+                        // fallback: compute from Diem Trung Binh if available
+                        const dtb =
+                          s["Diem Trung Binh"] ??
+                          s["DiemTB"] ??
+                          s["Diem"] ??
+                          s["DiemTrungBinh"];
+                        const num =
+                          typeof dtb === "number"
+                            ? dtb
+                            : Number(
+                                String(dtb ?? "").replace(/[^0-9.-]/g, "")
+                              );
+                        if (Number.isFinite(num)) {
+                          const he4 = Math.max(0, Math.min(4, (num / 10) * 4));
+                          return he4.toFixed(2);
+                        }
+
                         return (
                           <Badge size="sm" color="info">
                             -
@@ -466,7 +562,7 @@ export default function RecentOrders({
                 ))}
 
                 <TableRow>
-                  <TableCell colSpan={6} className="py-3">
+                  <TableCell colSpan={7} className="py-3">
                     <div className="flex items-center justify-end gap-3">
                       <div className="text-sm text-slate-500">
                         Hiển thị {Math.min(start + 1, total)}-
@@ -508,7 +604,7 @@ export default function RecentOrders({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-6 text-center text-sm text-slate-500"
                 >
                   {selectedClassName || masv

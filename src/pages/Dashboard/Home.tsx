@@ -20,7 +20,8 @@ import {
   ClassItem,
   fetchSemesters,
   fetchAllClasses,
-  fetchStudentCount,
+  useAdvisorDashboard,
+  fetchStudentsByClass,
 } from "../../utils/ClassLecturerApi";
 import ChatBot from "../../components/chat/ChatBox";
 // Note: dashboard data is loaded per-component via React Query to enable dedupe by queryKey
@@ -132,25 +133,49 @@ export default function Home(): JSX.Element {
   }, []);
 
   // Load student total when selected class changes
+  // Use aggregated advisor dashboard hook to get consolidated data
+  const semesterDisplayName = semesters.find(
+    (s) => s.id === selectedSemesterId
+  )?.name;
+  const advisorQuery = useAdvisorDashboard(
+    selectedClassName ?? undefined,
+    semesterDisplayName ?? undefined
+  );
+
+  // On-demand full roster (heavy). Fetch only when user requests it.
+  const [studentsRoster, setStudentsRoster] = useState<Array<
+    Record<string, unknown>
+  > | null>(null);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+
+  const loadRoster = async () => {
+    if (!selectedClassName) return;
+    setRosterLoading(true);
+    setRosterError(null);
+    try {
+      const rows = await fetchStudentsByClass(
+        selectedClassName,
+        semesterDisplayName ?? undefined
+      );
+      setStudentsRoster(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      setRosterError(err instanceof Error ? err.message : String(err));
+      setStudentsRoster([]);
+    } finally {
+      setRosterLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-    const loadCount = async () => {
-      if (!selectedClassName) {
-        setStudentTotal(null);
-        return;
-      }
-      try {
-        const count = await fetchStudentCount(selectedClassName);
-        if (!cancelled) setStudentTotal(count);
-      } catch {
-        if (!cancelled) setStudentTotal(null);
-      }
-    };
-    void loadCount();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedClassName, selectedSemesterId]);
+    if (!advisorQuery || advisorQuery.isLoading) return;
+    if (advisorQuery.isError) {
+      setStudentTotal(null);
+      return;
+    }
+    const d = advisorQuery.data;
+    setStudentTotal(d?.studentCount ?? null);
+  }, [advisorQuery]);
 
   return (
     <>
@@ -229,10 +254,9 @@ export default function Home(): JSX.Element {
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         <div className="col-span-12 space-y-6 xl:col-span-7">
           <EcommerceMetrics
-            selectedSemesterId={selectedSemesterId}
-            selectedClassId={selectedClassId}
-            selectedClassName={selectedClassName}
             studentTotalOverride={studentTotal ?? undefined}
+            advisorData={advisorQuery.data}
+            loading={advisorQuery.isLoading}
           />
         </div>
 
@@ -268,6 +292,8 @@ export default function Home(): JSX.Element {
                   semesters.find((s) => s.id === selectedSemesterId)?.name ??
                   undefined
                 }
+                advisorData={advisorQuery.data}
+                loading={advisorQuery.isLoading}
               />
               {/* <PassFailRateChart /> */}
               <AcademicPerformanceRate
@@ -301,13 +327,34 @@ export default function Home(): JSX.Element {
                   semesters.find((s) => s.id === selectedSemesterId)?.name ??
                   undefined
                 }
+                advisorData={advisorQuery.data}
+                advisorLoading={advisorQuery.isLoading}
               />
             </div>
           </section>
         </div>
 
         <div className="col-span-12 xl:col-span-12">
-          <RecentOrders selectedClassName={selectedClassName ?? undefined} />
+          <div className="flex items-center justify-between mb-3">
+            <div />
+            <div className="flex items-center gap-3">
+              <button
+                className="px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-50"
+                onClick={() => void loadRoster()}
+                disabled={!selectedClassName || rosterLoading}
+                title="Tải danh sách sinh viên (có thể chậm)"
+              >
+                {rosterLoading ? "Đang tải..." : "Tải danh sách sinh viên"}
+              </button>
+            </div>
+          </div>
+
+          <RecentOrders
+            selectedClassName={selectedClassName ?? undefined}
+            studentsProp={studentsRoster}
+            loading={rosterLoading}
+            errorMessage={rosterError}
+          />
         </div>
         <div>
           <ChatBot userType={"teacher"} />

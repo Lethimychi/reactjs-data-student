@@ -10,43 +10,37 @@ import { ResponsiveContainer, LineChart, Line, Tooltip } from "recharts";
 import { COLORS } from "../../utils/colors";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { fetchStudentsByClass } from "../../utils/ClassLecturerApi";
+// Component no longer performs its own network request by default.
+// It can accept `studentsProp` and `loading` from a parent that prefetches data.
 
 // Note: old mock tableData removed — component now fetches real students by class
 
 export default function RecentOrders({
   selectedClassName,
+  studentsProp,
+  loading,
+  errorMessage,
 }: {
   selectedClassName?: string | null;
+  studentsProp?: Array<Record<string, unknown>> | null;
+  loading?: boolean;
+  errorMessage?: string | null;
 }) {
   const [students, setStudents] = useState<Array<
     Record<string, unknown>
   > | null>(null);
   const [page, setPage] = useState<number>(1);
   const pageSize = 5; // show 5 students per page
-  const studentsQuery = useQuery({
-    queryKey: ["studentsByClass", selectedClassName],
-    queryFn: async () => fetchStudentsByClass(selectedClassName!),
-    enabled: !!selectedClassName,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
-  });
   const navigate = useNavigate();
 
   useEffect(() => {
+    // If parent supplied studentsProp, use it. If not, clear data.
     if (!selectedClassName) {
       setStudents(null);
       return;
     }
-    if (studentsQuery.isLoading) return;
-    if (studentsQuery.isError) {
-      console.error(studentsQuery.error);
-      setStudents(null);
-      return;
-    }
 
-    const rows = (studentsQuery.data ?? []) as Array<Record<string, unknown>>;
+    const rows = (studentsProp ?? []) as Array<Record<string, unknown>>;
 
     // Group rows by student id to build per-student GPA trend across semesters
     const byId = new Map<
@@ -128,13 +122,7 @@ export default function RecentOrders({
 
     setStudents(studentsArr);
     setPage(1);
-  }, [
-    selectedClassName,
-    studentsQuery.isLoading,
-    studentsQuery.isError,
-    studentsQuery.data,
-    studentsQuery.error,
-  ]);
+  }, [selectedClassName, studentsProp]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
@@ -177,7 +165,7 @@ export default function RecentOrders({
           {/* Table Body */}
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {studentsQuery.isLoading ? (
+            {loading ? (
               <TableRow>
                 <TableCell
                   colSpan={3}
@@ -186,15 +174,13 @@ export default function RecentOrders({
                   Đang tải...
                 </TableCell>
               </TableRow>
-            ) : studentsQuery.isError ? (
+            ) : errorMessage ? (
               <TableRow>
                 <TableCell
                   colSpan={3}
                   className="py-6 text-center text-sm text-red-600"
                 >
-                  {String(
-                    studentsQuery.error ?? "Không thể tải danh sách sinh viên"
-                  )}
+                  {String(errorMessage)}
                 </TableCell>
               </TableRow>
             ) : students && students.length ? (

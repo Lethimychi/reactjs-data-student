@@ -72,9 +72,6 @@ export default function CurrentVisitsDonut({
           <h3 className="text-lg font-semibold text-blue-900 dark:text-white/90">
             Tỷ lệ học lực theo môn
           </h3>
-          <p className="text-sm text-blue-600 dark:text-gray-400">
-            +43% than last year
-          </p>
         </div>
       </header>
 

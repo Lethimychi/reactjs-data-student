@@ -9,12 +9,17 @@ import {
   Tooltip,
 } from "recharts";
 import { COLORS } from "../../utils/colors";
-import { fetchGpaConductByClass } from "../../utils/ClassLecturerApi";
+import {
+  fetchGpaConductByClass,
+  AdvisorDashboardData,
+} from "../../utils/ClassLecturerApi";
 
 export default function GPAConductScatter({
   selectedClassName,
   selectedSemesterDisplayName,
   prefetchedData,
+  advisorData,
+  advisorLoading,
 }: {
   selectedClassName?: string | null;
   selectedSemesterDisplayName?: string | null;
@@ -23,6 +28,8 @@ export default function GPAConductScatter({
     gpa: number;
     conduct: number;
   }> | null;
+  advisorData?: AdvisorDashboardData | null;
+  advisorLoading?: boolean;
 }) {
   const [data, setData] = useState<
     Array<{ studentName: string; gpa: number; conduct: number }>
@@ -30,10 +37,32 @@ export default function GPAConductScatter({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // If parent provided prefetched data (from React Query), use it and skip fetching
+    // If parent provided prefetched data (from React Query) or aggregated advisorData, use it and skip fetching
     if (prefetchedData && Array.isArray(prefetchedData)) {
       setData(prefetchedData);
       setLoading(false);
+      return;
+    }
+
+    if (
+      advisorData &&
+      Array.isArray(advisorData.gpaConduct) &&
+      advisorData.gpaConduct.length
+    ) {
+      setData(
+        advisorData.gpaConduct as Array<{
+          studentName: string;
+          gpa: number;
+          conduct: number;
+        }>
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (advisorLoading) {
+      setLoading(true);
+      setData([]);
       return;
     }
     let mounted = true;
@@ -77,7 +106,13 @@ export default function GPAConductScatter({
     return () => {
       mounted = false;
     };
-  }, [selectedClassName, selectedSemesterDisplayName, prefetchedData]);
+  }, [
+    selectedClassName,
+    selectedSemesterDisplayName,
+    prefetchedData,
+    advisorData,
+    advisorLoading,
+  ]);
 
   const gpaValues = useMemo(() => data.map((d) => d.gpa), [data]);
   const conductValues = useMemo(() => data.map((d) => d.conduct), [data]);

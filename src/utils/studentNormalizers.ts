@@ -12,6 +12,9 @@ export type Course = {
   status: string;
   midScore?: number;
   finalScore?: number;
+  score4?: number;
+  letter?: string;
+  he4Keys?: number;
 };
 
 export type SemesterGPA = {
@@ -82,11 +85,34 @@ const toCourseArray = (arr: unknown): Course[] => {
     const itRec = (it ?? {}) as Record<string, unknown>;
     const course = String(itRec["course"] ?? itRec["name"] ?? "");
 
+    const rawMid =
+      itRec["Diem Giua Ky"] ??
+      itRec["DiemGiuaKy"] ??
+      itRec["DiemGiua"] ??
+      itRec["DiemGiuaKy"];
+    const midScore =
+      typeof rawMid === "number"
+        ? rawMid
+        : Number(String(rawMid ?? "").replace(/[^0-9.-]/g, "")) || undefined;
+
+    const rawFinal =
+      itRec["Diem Cuoi Ky"] ??
+      itRec["DiemCuoiKy"] ??
+      itRec["DiemCuoi"] ??
+      itRec["DiemCuoiKy"];
+    const finalScore =
+      typeof rawFinal === "number"
+        ? rawFinal
+        : Number(String(rawFinal ?? "").replace(/[^0-9.-]/g, "")) || undefined;
+
     const rawScore =
       itRec["score"] ??
       itRec["diem"] ??
       itRec["Diem"] ??
-      itRec["DiemTrungBinh"];
+      itRec["DiemTrungBinh"] ??
+      (typeof midScore === "number" && typeof finalScore === "number"
+        ? midScore * 0.3 + finalScore * 0.7
+        : undefined);
     const score =
       typeof rawScore === "number"
         ? (rawScore as number)
@@ -112,11 +138,39 @@ const toCourseArray = (arr: unknown): Course[] => {
         ? "Đậu"
         : "Đậu";
 
+    // extract 4-point score or compute from 10-point average
+    const rawHe4 =
+      itRec["Diem He4"] ?? itRec["DiemHe4"] ?? itRec["He4"] ?? itRec["Diem_H4"];
+    const score4 =
+      typeof rawHe4 === "number"
+        ? rawHe4
+        : (() => {
+            const num = Number(String(rawHe4 ?? "").replace(/[^0-9.-]/g, ""));
+            if (Number.isFinite(num)) return num;
+            // fallback compute from 10-point score
+            if (typeof score === "number" && !Number.isNaN(score)) {
+              return Math.max(0, Math.min(4, (score / 10) * 4));
+            }
+            return undefined;
+          })();
+
+    const letter =
+      (itRec["Xep Loai"] as string | undefined) ??
+      (itRec["XepLoai"] as string | undefined) ??
+      (itRec["Loai"] as string | undefined) ??
+      (itRec["Grade"] as string | undefined) ??
+      undefined;
+
     return {
       course,
       score,
       credits,
       status,
+      midScore: midScore === undefined ? undefined : midScore,
+      finalScore: finalScore === undefined ? undefined : finalScore,
+      score4:
+        score4 === undefined ? undefined : Number(Number(score4).toFixed(2)),
+      letter: letter ?? undefined,
     } as Course;
   });
 };

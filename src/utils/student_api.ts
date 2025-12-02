@@ -1,10 +1,6 @@
 // src/utils/student_api.ts
 
-import { API_BASE_URL, getAuth } from "./share";
-
-// Lấy base URL từ .env
-
-console.log("🔗 BASE API URL:", API_BASE_URL);
+import { fetchWithAuth } from "./share";
 
 // Types for API responses (records use Vietnamese keys)
 export type CourseApiRecord = {
@@ -37,53 +33,10 @@ export type DetailedCourseApiResponse = DetailedCourseApiRecord[];
 // Gọi API: Lấy thông tin sinh viên (dùng fetch)
 export default async function getStudentInfo() {
   try {
-    const auth = getAuth();
-
-    // Nếu không có token → không gọi API
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/thong-tin-sinh-vien`;
-
-    console.log("📡 Gửi request GET", url);
-
-    // Gọi API bằng fetch
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API:", text);
-      throw new Error(text || "API Error");
-    }
-
-    // Ensure response is JSON — sometimes servers (errors, proxies, auth pages)
-    // return HTML which causes `res.json()` to throw `Unexpected token '<'`.
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error("❌ API returned non-JSON response:", text.slice(0, 500));
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    // Parse JSON
-    const data = await res.json();
-    console.log("✅ API trả về JSON:", data);
-
+    // Delegate to shared helper which adds auth headers and validates JSON
+    const data = await fetchWithAuth<unknown>(
+      "/api/sinhvien/thong-tin-sinh-vien"
+    );
     return data;
   } catch (err) {
     console.error("❌ Lỗi gọi API:", err);
@@ -97,51 +50,9 @@ export default async function getStudentInfo() {
 // Trả về mảng các object có keys kiểu tiếng Việt: "Ten Nam Hoc", "Ten Hoc Ky", "Ten Mon Hoc", "Diem Trung Binh"
 export async function getStudentCoursesBySemester(): Promise<CourseApiResponse | null> {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API môn học");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/mon-hoc-sinh-vien-da-hoc-theo-hoc-ky`;
-    console.log("📡 Gửi request GET (courses):", url, {
-      Authorization: `${auth.tokenType} ${auth.token}`,
-    });
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        // When using ngrok in some setups the browser shows an interstitial HTML page;
-        // adding this header suppresses the ngrok browser warning and returns JSON.
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API môn học:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error("❌ API môn học trả về HTML/other:", text.slice(0, 500));
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = (await res.json()) as CourseApiResponse;
-    console.log("✅ API môn học trả về:", data);
+    const data = await fetchWithAuth<CourseApiResponse>(
+      "/api/sinhvien/mon-hoc-sinh-vien-da-hoc-theo-hoc-ky"
+    );
     return data;
   } catch (err) {
     console.error("❌ Lỗi khi gọi API môn học:", err);
@@ -165,49 +76,9 @@ export async function getStudentGpaBySemester(): Promise<
   GpaApiRecord[] | null
 > {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API GPA");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/gpa-sinh-vien-theo-hoc-ky-nam-hoc`;
-    console.log("📡 Gửi request GET (gpa per semester):", url, {
-      Authorization: `${auth.tokenType} ${auth.token}`,
-    });
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API GPA:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error("❌ API GPA trả về HTML/other:", text.slice(0, 500));
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = (await res.json()) as GpaApiRecord[];
-    console.log("✅ API GPA trả về:", data);
+    const data = await fetchWithAuth<GpaApiRecord[]>(
+      "/api/sinhvien/gpa-sinh-vien-theo-hoc-ky-nam-hoc"
+    );
     return data;
   } catch (err) {
     console.error("❌ Lỗi khi gọi API GPA:", err);
@@ -220,55 +91,12 @@ export async function getStudentGpaBySemester(): Promise<
 // Endpoint (example from screenshot): /api/sinhvien/diem-chi-tiet-tung-mon-hoc-sinh-vien-da-hoc
 export async function getStudentDetailedCourses(): Promise<DetailedCourseApiResponse | null> {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API điểm chi tiết");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/diem-chi-tiet-tung-mon-hoc-sinh-vien-da-hoc`;
-    console.log("📡 Gửi request GET (detailed courses):", url, {
-      Authorization: `${auth.tokenType} ${auth.token}`,
-    });
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API điểm chi tiết:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error(
-        "❌ API điểm chi tiết trả về HTML/other:",
-        text.slice(0, 500)
-      );
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = (await res.json()) as DetailedCourseApiResponse;
-    console.log("✅ API điểm chi tiết trả về:", data);
+    const data = await fetchWithAuth<DetailedCourseApiResponse>(
+      "/api/sinhvien/diem-chi-tiet-tung-mon-hoc-sinh-vien-da-hoc"
+    );
     return data;
   } catch (err) {
-    console.error("❌ Lỗi khi gọi API điểm chi tiết:", err);
+    console.error("❌ Lỗi gọi API điểm chi tiết:", err);
     throw err;
   }
 }
@@ -290,55 +118,12 @@ export async function getStudentPassRateBySemester(): Promise<
   PassRateApiRecord[] | null
 > {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API tỷ lệ qua môn");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/ty-le-qua-mon-cua-sinh-vien`;
-    console.log("📡 Gửi request GET (pass rate by semester):", url, {
-      Authorization: `${auth.tokenType} ${auth.token}`,
-    });
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API tỷ lệ qua môn:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error(
-        "❌ API tỷ lệ qua môn trả về HTML/other:",
-        text.slice(0, 500)
-      );
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = (await res.json()) as PassRateApiRecord[];
-    console.log("✅ API tỷ lệ qua môn trả về:", data);
+    const data = await fetchWithAuth<PassRateApiRecord[]>(
+      "/api/sinhvien/ty-le-qua-mon-cua-sinh-vien"
+    );
     return data;
   } catch (err) {
-    console.error("❌ Lỗi khi gọi API tỷ lệ qua môn:", err);
+    console.error("❌ Lỗi API tỷ lệ qua môn:", err);
     throw err;
   }
 }
@@ -351,54 +136,9 @@ export async function getStudentOverallGpa(): Promise<Record<
   unknown
 > | null> {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API GPA toàn khóa");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/gpa-trung-binh-toan-khoa-cua-sinh-vien`;
-    console.log("📡 Gửi request GET (gpa overall):", url, {
-      Authorization: `${auth.tokenType} ${auth.token}`,
-    });
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API GPA toàn khóa:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error(
-        "❌ API GPA toàn khóa trả về HTML/other:",
-        text.slice(0, 500)
-      );
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = await res.json();
-    console.log("✅ API GPA toàn khóa trả về:", data);
-
-    // API may return an array or an object. Prefer first element if array.
+    const data = await fetchWithAuth<unknown>(
+      "/api/sinhvien/gpa-trung-binh-toan-khoa-cua-sinh-vien"
+    );
     if (Array.isArray(data))
       return data.length ? (data[0] as Record<string, unknown>) : null;
     if (data && typeof data === "object")
@@ -426,56 +166,14 @@ export async function getStudentClassAverageComparison(
   hk?: string
 ): Promise<ClassAverageRecord[] | null> {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API so sánh điểm");
-      return null;
-    }
-
-    let url = `${API_BASE_URL}/api/sinhvien/so-sanh-diem-trung-binh-mon-hoc-cua-sinh-vien-voi-lop`;
-    // if year/hk provided, append as query params (best-effort)
+    let endpoint =
+      "/api/sinhvien/so-sanh-diem-trung-binh-mon-hoc-cua-sinh-vien-voi-lop";
     const params: string[] = [];
     if (year) params.push(`year=${encodeURIComponent(year)}`);
     if (hk) params.push(`hk=${encodeURIComponent(hk)}`);
-    if (params.length) url = `${url}?${params.join("&")}`;
+    if (params.length) endpoint = `${endpoint}?${params.join("&")}`;
 
-    console.log("📡 Gửi request GET (class average comparison):", url);
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API so sánh điểm:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error(
-        "❌ API so sánh điểm trả về HTML/other:",
-        text.slice(0, 500)
-      );
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = (await res.json()) as ClassAverageRecord[];
-    console.log("✅ API so sánh điểm trả về:", data);
+    const data = await fetchWithAuth<ClassAverageRecord[]>(endpoint);
     return data;
   } catch (err) {
     console.error("❌ Lỗi khi gọi API so sánh điểm:", err);
@@ -497,50 +195,51 @@ export async function getStudentTrainingScores(): Promise<
   TrainingScoreApiRecord[] | null
 > {
   try {
-    const auth = getAuth();
-    if (!auth.token) {
-      console.error("⛔ Không có token → Không thể gọi API DRL");
-      return null;
-    }
-
-    const url = `${API_BASE_URL}/api/sinhvien/diem-ren-luyen-cua-sinh-vien-trong-tung-hoc-ky`;
-    console.log("📡 Gửi request GET (training scores / DRL):", url);
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `${auth.tokenType} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Lỗi API DRL:", text);
-      throw new Error(
-        `API returned status ${res.status}: ${text.slice(0, 300)}`
-      );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.includes("application/json")) {
-      const text = await res.text();
-      console.error("❌ API DRL trả về HTML/other:", text.slice(0, 500));
-      throw new Error(
-        `Unexpected non-JSON response (status ${res.status}): ${text.slice(
-          0,
-          300
-        )}`
-      );
-    }
-
-    const data = (await res.json()) as TrainingScoreApiRecord[];
-    console.log("✅ API DRL trả về:", data);
+    const data = await fetchWithAuth<TrainingScoreApiRecord[]>(
+      "/api/sinhvien/diem-ren-luyen-cua-sinh-vien-trong-tung-hoc-ky"
+    );
     return data;
   } catch (err) {
     console.error("❌ Lỗi khi gọi API DRL:", err);
     throw err;
+  }
+}
+
+// -----------------------------------------
+// Dự đoán hiệu suất tương lai của sinh viên
+// Endpoint: /api/sinhvien/du-doan?MaSinhVien=...
+export type PredictionResult = {
+  MaSinhVien?: number | string;
+  HoTen?: string;
+  GPA_He10?: number;
+  GPA_He4?: number;
+  TongTinChi?: number;
+  ConLai?: number;
+  DuDoan?: {
+    PhuongPhap?: string;
+    SoKichBan?: number;
+    GPA_HienTai_He10?: number;
+    GPA_HienTai_He4?: number;
+    Loai_HienTai?: string;
+    XacSuat_DatLoai?: Record<string, number>;
+    DiemCanDat_O_ConLai_DeDat?: Record<string, number>;
+    GhiChu?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+export async function getStudentPrediction(
+  maSinhVien: string | number
+): Promise<PredictionResult | null> {
+  try {
+    const query = `?MaSinhVien=${encodeURIComponent(String(maSinhVien))}`;
+    const data = await fetchWithAuth<PredictionResult>(
+      `/dudoan/sac-suat-dat-loai-khi-tot-nghiep${query}`
+    );
+    return data;
+  } catch (err) {
+    console.error("❌ Lỗi gọi API dự đoán:", err);
+    return null;
   }
 }

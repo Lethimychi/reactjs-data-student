@@ -13,6 +13,8 @@ import { COLORS } from "../../utils/colors";
 import {
   fetchExtremeFailRateSubjects,
   ExtremeFailRateSubjectsResult,
+  ExtremeFailRateSubject,
+  AdvisorDashboardData,
 } from "../../utils/ClassLecturerApi";
 
 interface Props {
@@ -59,7 +61,9 @@ export default function HighestLowestScoreChart({
   selectedClassName,
   selectedSemesterDisplayName,
   className,
-}: Props) {
+  advisorData,
+  loading: advisorLoading,
+}: Props & { advisorData?: AdvisorDashboardData | null; loading?: boolean }) {
   const [raw, setRaw] = useState<ExtremeFailRateSubjectsResult>({});
 
   const cls = selectedClassName ?? undefined;
@@ -68,7 +72,8 @@ export default function HighestLowestScoreChart({
   const q = useQuery({
     queryKey: ["extremeFailRate", cls, sem],
     queryFn: async () => fetchExtremeFailRateSubjects(cls, sem),
-    enabled: !!cls,
+    // disable internal fetch when parent provided aggregated data
+    enabled: !!cls && !advisorData,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
@@ -78,6 +83,33 @@ export default function HighestLowestScoreChart({
       setRaw({});
       return;
     }
+
+    // If aggregator is loading, don't override state yet
+    if (advisorLoading) return;
+
+    // Prefer advisorData if available
+    if (advisorData) {
+      const top = (advisorData as AdvisorDashboardData).topFailSubject;
+      const low = (advisorData as AdvisorDashboardData).lowestFailSubject;
+      if (top || low) {
+        // map aggregator minimal shape into ExtremeFailRateSubject expected fields
+        const highest = top
+          ? ({
+              subjectName: top.subject ?? "",
+              failRatePercent: top.rate ?? undefined,
+            } as unknown as ExtremeFailRateSubject)
+          : undefined;
+        const lowest = low
+          ? ({
+              subjectName: low.subject ?? "",
+              passRatePercent: low.rate ?? undefined,
+            } as unknown as ExtremeFailRateSubject)
+          : undefined;
+        setRaw({ highest: highest ?? undefined, lowest: lowest ?? undefined });
+        return;
+      }
+    }
+
     if (q.isLoading) return;
     if (q.isError) {
       console.error(q.error);
@@ -85,7 +117,16 @@ export default function HighestLowestScoreChart({
       return;
     }
     setRaw(q.data ?? {});
-  }, [cls, sem, q.isLoading, q.isError, q.data, q.error]);
+  }, [
+    cls,
+    sem,
+    q.isLoading,
+    q.isError,
+    q.data,
+    q.error,
+    advisorData,
+    advisorLoading,
+  ]);
 
   const highest = raw.highest;
   const lowest = raw.lowest;

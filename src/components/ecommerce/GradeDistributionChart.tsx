@@ -1,87 +1,45 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
-import { fetchGradeDistribution } from "../../utils/ClassLecturerApi";
 import { COLORS } from "../../utils/colors";
+import { AdvisorDashboardData } from "../../utils/ClassLecturerApi";
 
 export default function GradeDistributionChart({
   className,
   selectedClassName,
   selectedSemesterDisplayName,
+  advisorData,
+  loading,
 }: {
   className?: string;
   selectedClassName?: string | null;
   selectedSemesterDisplayName?: string | null;
+  advisorData?: AdvisorDashboardData | null;
+  loading?: boolean;
 }) {
-  // Require explicit class + semester selection. Do not fall back to other semesters.
+  // Consume aggregated advisorData when available to avoid extra network calls
 
-  const [data, setData] = useState([
-    { name: "Xuất sắc", value: 0 },
-    { name: "Giỏi", value: 0 },
-    { name: "Khá", value: 0 },
-    { name: "Trung bình", value: 0 },
-    { name: "Yếu", value: 0 },
-  ]);
-  const [noData, setNoData] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    // If class or semester is not explicitly provided, do not call API and show no-data
-    if (!selectedClassName || !selectedSemesterDisplayName) {
-      setNoData(true);
-      setData((d) => d.map((x) => ({ ...x, value: 0 })));
-      return () => {
-        mounted = false;
-      };
+  const data = useMemo(() => {
+    const dist = advisorData?.gradeDistribution ?? [];
+    if (!dist || dist.length === 0) {
+      return [
+        { name: "Xuất sắc", value: 0 },
+        { name: "Giỏi", value: 0 },
+        { name: "Khá", value: 0 },
+        { name: "Trung bình", value: 0 },
+        { name: "Yếu", value: 0 },
+      ];
     }
+    // Map by labels to maintain the explicit ordering expected by UI
+    const order = ["Xuất sắc", "Giỏi", "Khá", "Trung bình", "Yếu"];
+    const mapped = order.map((label) => {
+      const found = dist.find((d) => d.label === label);
+      return { name: label, value: found ? Number(found.value) : 0 };
+    });
+    return mapped;
+  }, [advisorData]);
 
-    const cls = selectedClassName as string;
-    const sem = selectedSemesterDisplayName as string;
-
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      setNoData(false);
-      try {
-        // Call API with explicit filters only — require exact semester match (no fallback to other semesters)
-        const res = await fetchGradeDistribution(cls, sem, true);
-        if (!mounted) return;
-        if (!res) {
-          setNoData(true);
-          setData((d) => d.map((x) => ({ ...x, value: 0 })));
-        } else {
-          const mapped = [
-            { name: "Xuất sắc", value: Number(res.xuatSac.toFixed(2)) },
-            { name: "Giỏi", value: Number(res.gioi.toFixed(2)) },
-            { name: "Khá", value: Number(res.kha.toFixed(2)) },
-            { name: "Trung bình", value: Number(res.trungBinh.toFixed(2)) },
-            { name: "Yếu", value: Number(res.yeu.toFixed(2)) },
-          ];
-          const sum = mapped.reduce((s, it) => s + (Number(it.value) || 0), 0);
-          if (sum === 0) {
-            setNoData(true);
-            setData(mapped.map((x) => ({ ...x, value: 0 })));
-          } else {
-            setNoData(false);
-            setData(mapped);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-        if (!mounted) return;
-        setError("Lỗi khi tải dữ liệu");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      mounted = false;
-    };
-  }, [selectedClassName, selectedSemesterDisplayName]);
+  const noData = !advisorData || data.every((d) => !d.value);
+  const isLoading = Boolean(loading);
 
   return (
     <div className="rounded-2xl bg-white shadow-md shadow-slate-200 p-6">
@@ -94,13 +52,9 @@ export default function GradeDistributionChart({
           : "Mặc định: 14DHBM02 • HK2 - 2024-2025"}
       </p>
       <div className={className ?? "w-full h-72"}>
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-full">
             Đang tải...
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-full text-sm text-red-600">
-            {error}
           </div>
         ) : noData ? (
           <div className="flex items-center justify-center h-full text-sm text-slate-400">
@@ -127,7 +81,14 @@ export default function GradeDistributionChart({
                     formatter={(
                       value: number | string,
                       name?: string | number
-                    ) => [`${value}%`, name !== undefined ? String(name) : ""]}
+                    ) => {
+                      const num =
+                        typeof value === "number" ? value : Number(value);
+                      const text = Number.isFinite(num)
+                        ? `${num.toFixed(2)}%`
+                        : String(value) + "%";
+                      return [text, name !== undefined ? String(name) : ""];
+                    }}
                     contentStyle={{
                       backgroundColor: "#c1e6ffff",
                       border: "none",

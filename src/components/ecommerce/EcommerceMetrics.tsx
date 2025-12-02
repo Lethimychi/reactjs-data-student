@@ -1,175 +1,54 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { BoxIconLine, GroupIcon } from "../../icons";
 import Badge from "../ui/badge/Badge";
-import {
-  fetchStudentCount,
-  fetchClassPerformance,
-  fetchGenderCountByClass,
-  fetchSemesters,
-} from "../../utils/ClassLecturerApi";
+import { AdvisorDashboardData } from "../../utils/ClassLecturerApi";
 
 interface Props {
   selectedSemesterId?: number | null;
   selectedClassId?: number | null;
   selectedClassName?: string | null;
   studentTotalOverride?: number; // allow override from parent if already loaded
+  advisorData?: AdvisorDashboardData | null;
+  loading?: boolean;
+  error?: unknown;
 }
 
 export default function EcommerceMetrics({
-  selectedSemesterId,
-  selectedClassName,
   studentTotalOverride,
+  advisorData,
+  loading,
 }: Props) {
   const shorten = (s: string, max = 12) =>
     s && s.length > max ? s.slice(0, max) + "…" : s;
-  const [studentCount, setStudentCount] = useState<number>(0);
-  const [passRate, setPassRate] = useState<number | null>(null); // 0..1 or null when no data
-  const [debtCount, setDebtCount] = useState<number | null>(null);
-  const [maleCount, setMaleCount] = useState<number | null>(null);
-  const [femaleCount, setFemaleCount] = useState<number | null>(null);
-  const [prevPassRate, setPrevPassRate] = useState<number | null>(null);
-  const [prevDebtCount, setPrevDebtCount] = useState<number | null>(null);
-
   void shorten;
 
-  const studentCountQuery = useQuery({
-    queryKey: ["studentCount", selectedClassName],
-    queryFn: async () => fetchStudentCount(selectedClassName ?? undefined),
-    enabled: !!selectedClassName && studentTotalOverride === undefined,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
-  });
-
-  useEffect(() => {
-    if (studentTotalOverride !== undefined) {
-      setStudentCount(studentTotalOverride);
-      return;
+  const derived = useMemo(() => {
+    const studentCount = studentTotalOverride ?? advisorData?.studentCount ?? 0;
+    let passRateRaw: number | null = null;
+    let debtCount: number | null = null;
+    if (advisorData?.passFailRate) {
+      const passVal = advisorData.passFailRate.pass ?? null;
+      passRateRaw =
+        passVal !== null ? (passVal > 1 ? passVal / 100 : passVal) : null;
+      debtCount = advisorData.passFailRate.fail ?? null;
     }
-    if (studentCountQuery.isLoading) return;
-    if (studentCountQuery.isError) {
-      console.error(studentCountQuery.error);
-      setStudentCount(0);
-      return;
-    }
-    setStudentCount(studentCountQuery.data ?? 0);
-  }, [
-    studentTotalOverride,
-    studentCountQuery.isLoading,
-    studentCountQuery.isError,
-    studentCountQuery.data,
-    studentCountQuery.error,
-  ]);
-
-  // Load male/female counts for the selected class
-  const genderQuery = useQuery({
-    queryKey: ["genderCount", selectedClassName],
-    queryFn: async () =>
-      fetchGenderCountByClass(selectedClassName ?? undefined),
-    enabled: !!selectedClassName,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
-  });
-
-  useEffect(() => {
-    if (!selectedClassName) {
-      setMaleCount(null);
-      setFemaleCount(null);
-      return;
-    }
-    if (genderQuery.isLoading) return;
-    if (genderQuery.isError) {
-      console.error(genderQuery.error);
-      setMaleCount(null);
-      setFemaleCount(null);
-      return;
-    }
-    setMaleCount(genderQuery.data?.male ?? 0);
-    setFemaleCount(genderQuery.data?.female ?? 0);
-  }, [
-    selectedClassName,
-    genderQuery.isLoading,
-    genderQuery.isError,
-    genderQuery.data,
-    genderQuery.error,
-  ]);
-
-  // Load performance (Ty_Le_Dau & So_Rot)
-  const perfQuery = useQuery({
-    queryKey: ["classPerformance", selectedClassName, selectedSemesterId],
-    queryFn: async () => {
-      if (!selectedClassName || !selectedSemesterId) return null;
-      const semesters = await fetchSemesters();
-      const idx = semesters.findIndex((s) => s.id === selectedSemesterId);
-      const currentSemesterName = idx >= 0 ? semesters[idx].name : undefined;
-      const prevSemesterName = idx > 0 ? semesters[idx - 1].name : undefined;
-
-      const [currPerf, prevPerf] = await Promise.all([
-        fetchClassPerformance(selectedClassName, currentSemesterName),
-        prevSemesterName
-          ? fetchClassPerformance(selectedClassName, prevSemesterName)
-          : Promise.resolve({ passRate: null, debtCount: null }),
-      ]);
-
-      // verify existence of per-student GPAs
-      let hasStudentGpa = true;
-      try {
-        const { fetchStudentGPAs } = await import(
-          "../../utils/ClassLecturerApi"
-        );
-        const studentRecords = await fetchStudentGPAs(
-          selectedClassName,
-          currentSemesterName
-        );
-        if (!studentRecords || studentRecords.length === 0)
-          hasStudentGpa = false;
-      } catch {
-        hasStudentGpa = true;
-      }
-
-      return { currPerf, prevPerf, hasStudentGpa };
-    },
-    enabled: !!selectedClassName && !!selectedSemesterId,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
-  });
-
-  useEffect(() => {
-    if (!selectedClassName || !selectedSemesterId) {
-      setPassRate(null);
-      setDebtCount(null);
-      setPrevPassRate(null);
-      setPrevDebtCount(null);
-      return;
-    }
-    if (perfQuery.isLoading) return;
-    if (perfQuery.isError) {
-      console.error(perfQuery.error);
-      setPassRate(0);
-      setDebtCount(0);
-      setPrevPassRate(null);
-      setPrevDebtCount(null);
-      return;
-    }
-    const payload = perfQuery.data as {
-      currPerf: { passRate: number | null; debtCount: number | null };
-      prevPerf: { passRate: number | null; debtCount: number | null };
-      hasStudentGpa: boolean;
-    } | null;
-    if (!payload) return;
-    const { currPerf, prevPerf, hasStudentGpa } = payload;
-    setPassRate(hasStudentGpa ? currPerf.passRate ?? null : null);
-    setDebtCount(hasStudentGpa ? currPerf.debtCount ?? null : null);
-    setPrevPassRate(hasStudentGpa ? prevPerf?.passRate ?? null : null);
-    setPrevDebtCount(hasStudentGpa ? prevPerf?.debtCount ?? null : null);
-  }, [
-    selectedSemesterId,
-    selectedClassName,
-    perfQuery.isLoading,
-    perfQuery.isError,
-    perfQuery.data,
-    perfQuery.error,
-  ]);
+    const male = advisorData?.genderStats?.male ?? null;
+    const female = advisorData?.genderStats?.female ?? null;
+    // prev values not available from single aggregated call; keep null
+    const prevPassRate = null;
+    const prevDebt = null;
+    const isLoading = loading ?? false;
+    return {
+      studentCount,
+      passRateRaw,
+      debtCount,
+      male,
+      female,
+      prevPassRate,
+      prevDebt,
+      isLoading,
+    };
+  }, [advisorData, studentTotalOverride, loading]);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -185,15 +64,15 @@ export default function EcommerceMetrics({
               Sinh viên
             </span>
             <h4 className="mt-3 text-2xl font-bold text-slate-800">
-              {studentCountQuery.isLoading
+              {derived.isLoading
                 ? "..."
-                : studentCount.toLocaleString()}
+                : derived.studentCount.toLocaleString()}
             </h4>
           </div>
           <Badge color="success">
-            {maleCount === null || femaleCount === null
+            {derived.male === null || derived.female === null
               ? "—"
-              : `${maleCount.toString()} Nam - ${femaleCount.toString()} Nữ`}
+              : `${derived.male.toString()} Nam - ${derived.female.toString()} Nữ`}
           </Badge>
         </div>
 
@@ -207,19 +86,22 @@ export default function EcommerceMetrics({
               Tỷ lệ qua môn
             </span>
             <h4 className="mt-3 text-2xl font-bold text-slate-800">
-              {passRate === null ? "—" : `${(passRate * 100).toFixed(0)}%`}
+              {derived.passRateRaw === null
+                ? "—"
+                : `${(derived.passRateRaw * 100).toFixed(0)}%`}
             </h4>
           </div>
           <div className="flex items-center gap-2 justify-end">
-            {passRate === null ? (
+            {derived.passRateRaw === null ? (
               <Badge color="light">Không có dữ liệu</Badge>
-            ) : prevPassRate === null ? (
-              <Badge color={passRate >= 0.5 ? "success" : "error"}>
-                {(passRate * 100).toFixed(1)}%
+            ) : derived.prevPassRate === null ? (
+              <Badge color={derived.passRateRaw >= 0.5 ? "success" : "error"}>
+                {(derived.passRateRaw * 100).toFixed(1)}%
               </Badge>
             ) : (
               (() => {
-                const delta = (passRate - (prevPassRate ?? 0)) * 100;
+                const delta =
+                  (derived.passRateRaw - (derived.prevPassRate ?? 0)) * 100;
                 const positive = delta > 0;
                 const Icon = positive ? (
                   <svg
@@ -294,24 +176,23 @@ export default function EcommerceMetrics({
               Sinh viên nợ môn
             </span>
             <h4 className="mt-3 text-2xl font-bold text-slate-800">
-              {debtCount === null ? "—" : debtCount.toString()}
+              {derived.debtCount === null ? "—" : derived.debtCount.toString()}
             </h4>
           </div>
           <div className="flex items-center gap-2 justify-end">
-            {debtCount === null ? (
+            {derived.debtCount === null ? (
               <Badge color="light">Không có dữ liệu</Badge>
-            ) : prevDebtCount === null ? (
-              <Badge color={debtCount === 0 ? "success" : "error"}>
-                {`${debtCount} SV`}
+            ) : derived.prevDebt === null ? (
+              <Badge color={derived.debtCount === 0 ? "success" : "error"}>
+                {`${derived.debtCount} SV`}
               </Badge>
             ) : (
               (() => {
-                const delta = debtCount - (prevDebtCount ?? 0);
-                const improved = debtCount < (prevDebtCount ?? 0); // decrease in debt is good
-                // For display: show absolute change and percent if previous > 0
+                const delta = derived.debtCount - (derived.prevDebt ?? 0);
+                const improved = derived.debtCount < (derived.prevDebt ?? 0);
                 const pct =
-                  (prevDebtCount ?? 0) > 0
-                    ? (delta / (prevDebtCount ?? 1)) * 100
+                  (derived.prevDebt ?? 0) > 0
+                    ? (delta / (derived.prevDebt ?? 1)) * 100
                     : null;
                 const Icon = improved ? (
                   <svg

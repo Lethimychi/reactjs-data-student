@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // Custom hooks for data fetching
 import {
@@ -29,6 +29,10 @@ import {
 } from "../../utils/dataCalculators";
 import { StudentHeader } from "../../components/student_dashboard";
 import ChatBot from "../../components/chat/ChatBox";
+import {
+  getStudentPrediction,
+  PredictionResult,
+} from "../../utils/student_api";
 
 const StudentDashboard: React.FC = () => {
   // ========== UI STATE ==========
@@ -59,6 +63,39 @@ const StudentDashboard: React.FC = () => {
     apiCoursesDetailed,
     currentStudent
   );
+
+  // Prediction state (fetched once we have the student id)
+  const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+  const [predLoading, setPredLoading] = useState(false);
+  const [predError, setPredError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Use normalized id from info.id or numeric id on the student object
+    const ma =
+      currentStudent?.info?.id ??
+      (currentStudent?.id ? String(currentStudent.id) : null);
+    if (!ma) return;
+    let mounted = true;
+    setPredLoading(true);
+    setPredError(null);
+    console.log("Requesting prediction for student:", ma);
+    getStudentPrediction(ma)
+      .then((res) => {
+        if (!mounted) return;
+        setPrediction(res);
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        setPredError(String(e ?? "Lỗi gọi dự đoán"));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setPredLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [currentStudent]);
 
   // ========== HELPERS ==========
   const userDisplayName =
@@ -229,13 +266,13 @@ const StudentDashboard: React.FC = () => {
           {/* Prediction Tab */}
           {selectedTab === "prediction" && (
             <div className="bg-white rounded-2xl p-8 border border-blue-100/50 shadow-xl shadow-blue-100/20 transition-all duration-300">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-6">
-                🔮 Dự đoán hiệu suất tương lai
-              </h2>
               <PredictionPanel
                 currentStudent={currentStudent}
                 highlightedSubject={highlightedSubject}
-                onHighlightSubject={(s) => setHighlightedSubject(s)}
+                onHighlightSubject={() => setHighlightedSubject(null)}
+                prediction={prediction}
+                predLoading={predLoading}
+                predError={predError}
               />
             </div>
           )}

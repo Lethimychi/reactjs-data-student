@@ -1,4 +1,5 @@
 import { API_BASE_URL, getAuth } from "./share";
+import { useQuery } from "@tanstack/react-query";
 
 export interface Semester {
   id: number;
@@ -19,37 +20,62 @@ interface AdvisorRecord {
   [key: string]: unknown;
 }
 
-// Common fetch function for all API calls
-async function fetchWithAuth<T>(endpoint: string): Promise<T> {
+// Common fetch function for all API calls with optional timeout (ms)
+async function fetchWithAuth<T>(
+  endpoint: string,
+  timeoutMs: number = 200000
+): Promise<T> {
   if (!API_BASE_URL) throw new Error("API_BASE_URL is not defined");
 
   const auth = getAuth();
   if (!auth.token) throw new Error("Thiếu token xác thực");
 
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      Authorization: `${auth.tokenType ?? "Bearer"} ${auth.token}`,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "69420",
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    throw new Error(
-      (await res.text()) || `Request failed with status ${res.status}`
-    );
+  try {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: {
+        Authorization: `${auth.tokenType ?? "Bearer"} ${auth.token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "69420",
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `Request failed with status ${res.status}`);
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(
+        `Unexpected response type: ${contentType}. Payload: ${text.slice(
+          0,
+          300
+        )}`
+      );
+    }
+
+    const json = await res.json();
+    clearTimeout(timeoutId);
+    return json;
+  } catch (err) {
+    // avoid using `any` to satisfy lint rules; check for AbortError name safely
+    if (
+      err &&
+      typeof (err as { name?: unknown }).name === "string" &&
+      (err as { name?: string }).name === "AbortError"
+    ) {
+      throw new Error(`Request to ${endpoint} timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const contentType = res.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    const text = await res.text();
-    throw new Error(
-      `Unexpected response type: ${contentType}. Payload: ${text.slice(0, 300)}`
-    );
-  }
-
-  return res.json();
 }
 
 const ADVISOR_ENDPOINT = "/api/giangvien/Giang-Vien-Co-Van-Lop-Hoc-Theo-Ky";
@@ -155,7 +181,7 @@ export async function fetchSemesters(): Promise<Semester[]> {
       name: displayName,
     });
   });
-
+  // console.info("Fetched semesters:", semesters);
   return semesters;
 }
 
@@ -235,7 +261,7 @@ const STUDENT_GENDER_ENDPOINT =
 
 export async function fetchGenderCountByClass(
   className?: string,
-  fallbackClass: string = "14DHBM02"
+  fallbackClass: string = ""
 ): Promise<{ male: number; female: number } | null> {
   try {
     const data = await fetchWithAuth<unknown>(STUDENT_GENDER_ENDPOINT);
@@ -291,15 +317,11 @@ export async function fetchClassPerformance(
     const target = className.trim().toLowerCase();
 
     // If semesterDisplayName provided like "HK_3 - 2023-2024" try to extract year/term parts for filtering
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (semesterDisplayName) {
       const parts = semesterDisplayName.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(semesterDisplayName.trim());
       }
     }
 
@@ -307,10 +329,6 @@ export async function fetchClassPerformance(
     let match: Record<string, unknown> | undefined = records.find((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop || lop !== target) return false;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return false;
-      }
       if (termFilter) {
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
@@ -365,26 +383,18 @@ export async function fetchClassAverageGPA(
 
     const target = className.trim().toLowerCase();
 
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (semesterDisplayName) {
       const parts = semesterDisplayName.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = parts[0].trim();
-        yearFilter = parts[1].trim();
-      } else {
-        // fallback: maybe "Học kỳ X" only
-        termFilter = semesterDisplayName.trim();
       }
     }
 
     let match: Record<string, unknown> | undefined = records.find((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop || lop !== target) return false;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return false;
-      }
+
       if (termFilter) {
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
@@ -423,8 +433,8 @@ export async function fetchGradeDistribution(
   semesterDisplayName?: string,
   // when true, require matching semester/year and DO NOT fallback to other semesters
   requireSemesterMatch: boolean = false,
-  fallbackSemester: string = "HK2 - 2024-2025",
-  fallbackClass: string = "14DHBM02"
+  fallbackSemester: string = "",
+  fallbackClass: string = ""
 ): Promise<{
   xuatSac: number;
   gioi: number;
@@ -441,15 +451,11 @@ export async function fetchGradeDistribution(
     const effectiveClass = (className || fallbackClass).trim().toLowerCase();
     const effectiveSemester = semesterDisplayName || fallbackSemester;
 
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (effectiveSemester) {
       const parts = effectiveSemester.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(effectiveSemester.trim());
       }
     }
 
@@ -457,10 +463,6 @@ export async function fetchGradeDistribution(
     let match = records.find((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop || lop !== effectiveClass) return false;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return false;
-      }
       if (termFilter) {
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
@@ -519,8 +521,8 @@ export interface SubjectPassRate {
 export async function fetchPassRateBySubject(
   className?: string,
   semesterDisplayName?: string,
-  fallbackSemester: string = "HK2 - 2024-2025",
-  fallbackClass: string = "14DHBM02"
+  fallbackSemester: string = "",
+  fallbackClass: string = ""
 ): Promise<SubjectPassRate[]> {
   try {
     const data = await fetchWithAuth<unknown>(PASS_RATE_BY_SUBJECT_ENDPOINT);
@@ -531,15 +533,11 @@ export async function fetchPassRateBySubject(
     const effectiveClass = (className || fallbackClass).trim().toLowerCase();
     const effectiveSemester = semesterDisplayName || fallbackSemester;
 
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (effectiveSemester) {
       const parts = effectiveSemester.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(effectiveSemester.trim());
       }
     }
 
@@ -547,10 +545,7 @@ export async function fetchPassRateBySubject(
     records.forEach((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop || lop !== effectiveClass) return;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return;
-      }
+
       if (termFilter) {
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
@@ -609,8 +604,8 @@ export async function fetchGpaConductByClass(
   semesterDisplayName?: string,
   // when true, require matching semester/year and DO NOT fallback to other semesters
   requireSemesterMatch: boolean = false,
-  fallbackSemester: string = "HK2 - 2024-2025",
-  fallbackClass: string = "14DHBM02"
+  fallbackSemester: string = "",
+  fallbackClass: string = ""
 ): Promise<Array<{ studentName: string; gpa: number; conduct: number }>> {
   try {
     // Use request-level cache to avoid fetching the same endpoint repeatedly when
@@ -642,15 +637,11 @@ export async function fetchGpaConductByClass(
     const effectiveClass = (className || fallbackClass).trim().toLowerCase();
     const effectiveSemester = semesterDisplayName || fallbackSemester;
 
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (effectiveSemester) {
       const parts = effectiveSemester.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(effectiveSemester.trim());
       }
     }
 
@@ -710,10 +701,6 @@ export async function fetchGpaConductByClass(
       const lopNormalized = normalizeClassKey(lopRaw);
       // strict or normalized match
       if (lop !== effectiveClass && lopNormalized !== targetNormalized) return;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return;
-      }
       if (termFilter) {
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
@@ -856,27 +843,29 @@ const STUDENT_GPA_ENDPOINT =
 export async function fetchStudentGPAs(
   className?: string,
   semesterDisplayName?: string,
-  fallbackSemester: string = "HK2 - 2024-2025",
-  fallbackClass: string = "14DHBM02"
+  fallbackSemester: string = "",
+  fallbackClass: string = ""
 ): Promise<StudentGPARecord[]> {
   try {
     const data = await fetchWithAuth<unknown>(STUDENT_GPA_ENDPOINT);
+    // console.info("Fetched student GPA data:", data);
     const records: Array<Record<string, unknown>> = Array.isArray(data)
       ? (data as Array<Record<string, unknown>>)
       : [];
-
+    // console.info("Parsed student GPA records:", records);
     const effectiveClass = (className || fallbackClass).trim().toLowerCase();
     const effectiveSemester = semesterDisplayName || fallbackSemester;
-
-    let yearFilter: string | null = null;
+    // console.info(
+    //   "Filtering student GPA for class/semester:",
+    //   effectiveClass,
+    //   effectiveSemester
+    // );
     let termFilter: string | null = null;
     if (effectiveSemester) {
       const parts = effectiveSemester.split(" - ");
-      if (parts.length === 2) {
+      // console.info("Parsed semester parts:", parts, parts.length);
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(effectiveSemester.trim());
       }
     }
 
@@ -884,13 +873,12 @@ export async function fetchStudentGPAs(
     const semesterResult: StudentGPARecord[] = [];
     records.forEach((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
+      // console.info("Processing record for class:", lop);
       if (!lop || lop !== effectiveClass) return;
 
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year && year !== yearFilter) return;
-      }
+      // console.info("Year match found");
       if (termFilter) {
+        // console.info("Applying term filter:", termFilter);
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
         const normalizedMa = termMa ? normalizeTerm(termMa) : null;
@@ -906,7 +894,10 @@ export async function fetchStudentGPAs(
       const gpa = typeof gpaRaw === "number" ? gpaRaw : parseNumericId(gpaRaw);
       if (name && gpa !== null) semesterResult.push({ studentName: name, gpa });
     });
-
+    // console.info(
+    //   "Filtered student length GPA records :",
+    //   semesterResult.length
+    // );
     // If no per-student GPA records were found for the selected semester, return empty to indicate 'no data'
     if (semesterResult.length === 0) return [];
 
@@ -937,8 +928,8 @@ export interface CourseAverageRecord {
 export async function fetchCourseAverages(
   className?: string,
   semesterDisplayName?: string,
-  fallbackSemester: string = "HK2 - 2024-2025",
-  fallbackClass: string = "14DHBM02"
+  fallbackSemester: string = "",
+  fallbackClass: string = ""
 ): Promise<CourseAverageRecord[]> {
   try {
     const data = await fetchWithAuth<unknown>(COURSE_AVERAGE_ENDPOINT);
@@ -949,15 +940,11 @@ export async function fetchCourseAverages(
     const effectiveClass = (className || fallbackClass).trim().toLowerCase();
     const effectiveSemester = semesterDisplayName || fallbackSemester;
 
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (effectiveSemester) {
       const parts = effectiveSemester.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(effectiveSemester.trim());
       }
     }
 
@@ -965,10 +952,6 @@ export async function fetchCourseAverages(
     records.forEach((r) => {
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop || lop !== effectiveClass) return;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return;
-      }
       if (termFilter) {
         const termMa = (r["Ma Hoc Ky"] as string | undefined)?.trim();
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
@@ -1038,7 +1021,7 @@ export async function fetchStudentsByClass(
       // Also include common fields the backend sometimes expects:
       // split by ' - ' (term - year) e.g. "HK1 - 2023-2024" or "HK1 - 2023"
       const parts = semesterDisplayName.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         payload["Ten Hoc Ky"] = parts[0].trim();
         payload["Ten Nam Hoc"] = parts[1].trim();
         payload.year = parts[1].trim();
@@ -1069,7 +1052,7 @@ export async function fetchStudentsByClass(
       } catch {
         /* ignore */
       }
-      if (parts && parts.length === 2) {
+      if (parts && parts.length === 3) {
         payload["NamHoc"] = parts[1].trim();
       }
       payload["HocKyNamHoc"] = semesterDisplayName;
@@ -1082,16 +1065,37 @@ export async function fetchStudentsByClass(
 
     console.debug("fetchStudentsByClass payload:", payload);
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `${auth.tokenType ?? "Bearer"} ${auth.token}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "69420",
-      },
-      body: JSON.stringify(payload),
-    });
+    // Use AbortController to set a longer timeout for potentially-heavy POST
+    const controller = new AbortController();
+    const timeoutMs = 90000; // 90s for large payloads / slow DB
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `${auth.tokenType ?? "Bearer"} ${auth.token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "69420",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (
+        err &&
+        typeof (err as { name?: unknown }).name === "string" &&
+        (err as { name?: string }).name === "AbortError"
+      ) {
+        throw new Error(
+          `Request to ${STUDENT_LIST_BY_CLASS_ENDPOINT} timed out after ${timeoutMs}ms`
+        );
+      }
+      throw err;
+    }
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const text = await res.text();
@@ -1144,22 +1148,18 @@ export interface ExtremeFailRateSubjectsResult {
 export async function fetchExtremeFailRateSubjects(
   className?: string,
   semesterDisplayName?: string,
-  fallbackSemester: string = "HK2 - 2024-2025",
-  fallbackClass: string = "14DHBM02"
+  fallbackSemester: string = "",
+  fallbackClass: string = ""
 ): Promise<ExtremeFailRateSubjectsResult> {
   try {
     const effectiveClass = (className || fallbackClass).trim().toLowerCase();
     const effectiveSemester = semesterDisplayName || fallbackSemester;
 
-    let yearFilter: string | null = null;
     let termFilter: string | null = null;
     if (effectiveSemester) {
       const parts = effectiveSemester.split(" - ");
-      if (parts.length === 2) {
+      if (parts.length === 3) {
         termFilter = normalizeTerm(parts[0].trim());
-        yearFilter = parts[1].trim();
-      } else {
-        termFilter = normalizeTerm(effectiveSemester.trim());
       }
     }
 
@@ -1181,10 +1181,6 @@ export async function fetchExtremeFailRateSubjects(
       const lop = (r["Ten Lop"] as string | undefined)?.trim().toLowerCase();
       if (!lop) return undefined;
       if (lop !== effectiveClass) return undefined;
-      if (yearFilter) {
-        const year = (r["Ten Nam Hoc"] as string | undefined)?.trim();
-        if (year !== yearFilter) return undefined;
-      }
       if (termFilter) {
         const termTen = (r["Ten Hoc Ky"] as string | undefined)?.trim();
         const termNorm = termTen ? normalizeTerm(termTen) : null;
@@ -1244,4 +1240,224 @@ export async function fetchExtremeFailRateSubjects(
     console.error("Không thể tải dữ liệu môn có tỷ lệ rớt cao/thấp nhất", e);
     return {};
   }
+}
+
+// ---------------------- Aggregator + Caches / Indexes ----------------------
+
+export interface AdvisorDashboardData {
+  studentCount: number | null;
+  genderStats: { male: number; female: number } | null;
+  gradeDistribution: Array<{ label: string; value: number }>;
+  passFailRate: { pass: number; fail: number } | null;
+  classGpaTrend: Array<{ semester: string; gpa: number }>;
+  passRateBySubject: Array<{ subject: string; passRate: number }>;
+  gpaConduct: Array<{ studentName: string; gpa: number; conduct: number }>;
+  topFailSubject?: { subject: string; rate: number } | null;
+  lowestFailSubject?: { subject: string; rate: number } | null;
+}
+
+// Module-level caches for heavy endpoints (>10k rows)
+// const cachedHeavyEndpoints: { [key: string]: unknown } = {};
+
+// Index for GPA/DRL correlation results keyed by class|term|year|strictMode
+const gpaConductIndex = new Map<
+  string,
+  Array<{ studentName: string; gpa: number; conduct: number }>
+>();
+
+// Simple helper to build index key
+const buildIndexKey = (
+  className?: string,
+  semesterDisplayName?: string,
+  strictMode = false
+) => {
+  const parts = [className ?? "", "", ""];
+  if (semesterDisplayName) {
+    const p = semesterDisplayName.split(" - ");
+    if (p.length === 2) {
+      parts[1] = normalizeTerm(p[0].trim());
+      parts[2] = p[1].trim();
+    } else {
+      parts[1] = normalizeTerm(semesterDisplayName.trim());
+      parts[2] = "";
+    }
+  }
+  return `${parts[0] ?? ""}|${parts[1] ?? ""}|${parts[2] ?? ""}|${
+    strictMode ? "1" : "0"
+  }`;
+};
+
+export async function loadAdvisorDashboardData(
+  className?: string,
+  semesterDisplayName?: string,
+  options?: { forceRefresh?: boolean }
+): Promise<AdvisorDashboardData> {
+  const force = options?.forceRefresh === true;
+
+  const keyGpaIndex = buildIndexKey(className, semesterDisplayName, false);
+  if (!force && gpaConductIndex.has(keyGpaIndex)) {
+    const cachedGpa = gpaConductIndex.get(keyGpaIndex) ?? [];
+    const results = await Promise.all([
+      fetchStudentCount(className),
+      fetchGenderCountByClass(className),
+      fetchGradeDistribution(className, semesterDisplayName),
+      fetchClassPerformance(className, semesterDisplayName),
+      fetchPassRateBySubject(className, semesterDisplayName),
+      fetchExtremeFailRateSubjects(className, semesterDisplayName),
+    ]);
+    const studentCount = results[0] as number | null;
+    const genderStats = results[1] as { male: number; female: number } | null;
+    const gradeDist = results[2] as {
+      xuatSac: number;
+      gioi: number;
+      kha: number;
+      trungBinh: number;
+      yeu: number;
+    } | null;
+    const classPerf = results[3] as ClassPerformance | null;
+    const passBySubj = (results[4] as SubjectPassRate[] | null) ?? [];
+    const extreme = (results[5] as ExtremeFailRateSubjectsResult | null) ?? {};
+
+    const gradeArray = gradeDist
+      ? [
+          { label: "Xuất sắc", value: gradeDist.xuatSac },
+          { label: "Giỏi", value: gradeDist.gioi },
+          { label: "Khá", value: gradeDist.kha },
+          { label: "Trung bình", value: gradeDist.trungBinh },
+          { label: "Yếu", value: gradeDist.yeu },
+        ]
+      : [];
+
+    return {
+      studentCount: studentCount ?? null,
+      genderStats: genderStats ?? null,
+      gradeDistribution: gradeArray,
+      passFailRate:
+        classPerf && classPerf.passRate !== null
+          ? {
+              pass: Number(classPerf.passRate) * 100,
+              fail: classPerf.debtCount ?? 0,
+            }
+          : null,
+      classGpaTrend: [],
+      passRateBySubject: (passBySubj || []).map((s) => ({
+        subject: s.tenMonHoc ?? "",
+        passRate: Number(s.tiLeQuaMon ?? 0) * 100,
+      })),
+      gpaConduct: cachedGpa,
+      topFailSubject: extreme.highest
+        ? {
+            subject: extreme.highest.subjectName ?? "",
+            rate: Number(extreme.highest.failRatePercent ?? 0),
+          }
+        : null,
+      lowestFailSubject: extreme.lowest
+        ? {
+            subject: extreme.lowest.subjectName ?? "",
+            rate: Number(extreme.lowest.passRatePercent ?? 0),
+          }
+        : null,
+    };
+  }
+
+  const promises = [
+    fetchStudentCount(className),
+    fetchGenderCountByClass(className),
+    fetchGradeDistribution(className, semesterDisplayName),
+    fetchClassPerformance(className, semesterDisplayName),
+    fetchClassAverageGPA(className, semesterDisplayName),
+    fetchPassRateBySubject(className, semesterDisplayName),
+    fetchGpaConductByClass(className, semesterDisplayName, false),
+    fetchExtremeFailRateSubjects(className, semesterDisplayName),
+  ];
+
+  const resultsAll = await Promise.all(promises);
+  const studentCount = resultsAll[0] as number | null;
+  const genderStats = resultsAll[1] as { male: number; female: number } | null;
+  const gradeDist = resultsAll[2] as {
+    xuatSac: number;
+    gioi: number;
+    kha: number;
+    trungBinh: number;
+    yeu: number;
+  } | null;
+  const classPerf = resultsAll[3] as ClassPerformance | null;
+  const classGpa = resultsAll[4] as number | null;
+  const passBySubj = (resultsAll[5] as SubjectPassRate[] | null) ?? [];
+  const gpaConductRaw =
+    (resultsAll[6] as Array<{
+      studentName: string;
+      gpa: number;
+      conduct: number;
+    }>) || [];
+  const extreme = (resultsAll[7] as ExtremeFailRateSubjectsResult | null) ?? {};
+  const gradeArray = gradeDist
+    ? [
+        { label: "Xuất sắc", value: gradeDist.xuatSac },
+        { label: "Giỏi", value: gradeDist.gioi },
+        { label: "Khá", value: gradeDist.kha },
+        { label: "Trung bình", value: gradeDist.trungBinh },
+        { label: "Yếu", value: gradeDist.yeu },
+      ]
+    : [];
+
+  const passRateBySubject = (passBySubj || []).map((s) => ({
+    subject: s.tenMonHoc ?? "",
+    passRate: Number(s.tiLeQuaMon ?? 0) * 100,
+  }));
+
+  const gpaConduct = (gpaConductRaw || []) as Array<{
+    studentName: string;
+    gpa: number;
+    conduct: number;
+  }>;
+
+  try {
+    const idxKey = buildIndexKey(className, semesterDisplayName, false);
+    gpaConductIndex.set(idxKey, gpaConduct);
+  } catch {
+    /* ignore cache set errors */
+  }
+
+  const dashboard: AdvisorDashboardData = {
+    studentCount: studentCount ?? null,
+    genderStats: genderStats ?? null,
+    gradeDistribution: gradeArray,
+    passFailRate:
+      classPerf && classPerf.passRate !== null
+        ? {
+            pass: Number(classPerf.passRate) * 100,
+            fail: classPerf.debtCount ?? 0,
+          }
+        : null,
+    classGpaTrend:
+      classGpa !== null
+        ? [{ semester: semesterDisplayName ?? "", gpa: classGpa }]
+        : [],
+    passRateBySubject,
+    gpaConduct,
+    topFailSubject: extreme.highest
+      ? {
+          subject: extreme.highest.subjectName ?? "",
+          rate: Number(extreme.highest.failRatePercent ?? 0),
+        }
+      : null,
+    lowestFailSubject: extreme.lowest
+      ? {
+          subject: extreme.lowest.subjectName ?? "",
+          rate: Number(extreme.lowest.passRatePercent ?? 0),
+        }
+      : null,
+  };
+
+  return dashboard;
+}
+
+export function useAdvisorDashboard(className?: string, semesterName?: string) {
+  return useQuery({
+    queryKey: ["advisorDashboard", className, semesterName],
+    enabled: Boolean(className && semesterName),
+    queryFn: async () => loadAdvisorDashboardData(className, semesterName),
+    staleTime: 5 * 60 * 1000,
+  });
 }

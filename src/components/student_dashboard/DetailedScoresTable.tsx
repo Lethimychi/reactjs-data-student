@@ -24,6 +24,8 @@ export const DetailedScoresTable: React.FC<DetailedScoresTableProps> = ({
               <th className="px-6 py-4 text-center">GK</th>
               <th className="px-6 py-4 text-center">CK</th>
               <th className="px-6 py-4 text-center">TB</th>
+              <th className="px-6 py-4 text-center">Hệ 4</th>
+              <th className="px-6 py-4 text-center">Loại</th>
               <th className="px-6 py-4 text-center rounded-tr-xl">
                 Trạng thái
               </th>
@@ -63,7 +65,16 @@ export const DetailedScoresTable: React.FC<DetailedScoresTableProps> = ({
                       : score.score}
                   </span>
                 </td>
+
                 <td className="px-6 py-4 text-center">
+                  {typeof score.he4Keys === "number"
+                    ? score.he4Keys
+                    : score.score4}
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
+                  {score.letter}
+                </td>
+                <td className="px-6 py-4 text-center text-slate-600">
                   <span
                     className={`px-4 py-1 rounded-full text-sm font-semibold ${
                       score.status === "Đậu"

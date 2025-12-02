@@ -14,16 +14,21 @@ import { COLORS } from "../../utils/colors";
 import {
   fetchCourseAverages,
   CourseAverageRecord,
+  AdvisorDashboardData,
 } from "../../utils/ClassLecturerApi";
 
 export default function ClassAverageComparisonChart({
   className,
   selectedClassName,
   selectedSemesterDisplayName,
+  advisorData,
+  loading: advisorLoading,
 }: {
   className?: string;
   selectedClassName?: string | null;
   selectedSemesterDisplayName?: string | null;
+  advisorData?: AdvisorDashboardData | null;
+  loading?: boolean;
 }) {
   // Do not use fallbacks here — require explicit class + semester selection
 
@@ -40,7 +45,8 @@ export default function ClassAverageComparisonChart({
   const q = useQuery({
     queryKey: ["courseAverages", cls, sem],
     queryFn: async () => fetchCourseAverages(cls, sem),
-    enabled: !!cls && !!sem,
+    // if parent provided aggregated data, skip the local fetch
+    enabled: !!cls && !!sem && !advisorData,
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   });
@@ -50,6 +56,50 @@ export default function ClassAverageComparisonChart({
       setData([]);
       setNoData(true);
       return;
+    }
+
+    // If parent aggregator is loading, reflect that
+    if (advisorLoading) {
+      setData([]);
+      setNoData(true);
+      return;
+    }
+
+    // If advisorData contains course averages, use them
+    const ad = advisorData as unknown as
+      | {
+          courseAverages?: CourseAverageRecord[];
+          classCourseAverages?: CourseAverageRecord[];
+          courseAveraGes?: CourseAverageRecord[];
+        }
+      | undefined;
+
+    const maybeCourseAverages =
+      ad?.courseAverages ?? ad?.classCourseAverages ?? ad?.courseAveraGes;
+
+    if (Array.isArray(maybeCourseAverages) && maybeCourseAverages.length) {
+      try {
+        const rows = maybeCourseAverages as CourseAverageRecord[];
+        const mapped = rows.map((r: CourseAverageRecord) => ({
+          course: (r.tenMonHoc as string) || "(không tên)",
+          student: Number(r.gpaLop ?? 0),
+          average: Number(r.gpaKhoa ?? 0),
+        }));
+        const sum = mapped.reduce(
+          (s, it) => s + (Number(it.student || 0) + Number(it.average || 0)),
+          0
+        );
+        if (sum === 0) {
+          setData([]);
+          setNoData(true);
+        } else {
+          setData(mapped);
+          setNoData(false);
+        }
+        return;
+      } catch (err) {
+        console.error("Mapping advisorData.courseAverages failed:", err);
+      }
     }
 
     if (q.isLoading) return;
@@ -82,7 +132,16 @@ export default function ClassAverageComparisonChart({
         setNoData(false);
       }
     }
-  }, [cls, sem, q.isLoading, q.isError, q.data, q.error]);
+  }, [
+    cls,
+    sem,
+    q.isLoading,
+    q.isError,
+    q.data,
+    q.error,
+    advisorData,
+    advisorLoading,
+  ]);
 
   const formatTooltip = (value: number | string, name?: string) => {
     const num = typeof value === "number" ? value : Number(value);

@@ -96,6 +96,7 @@ export default function EcommerceAnalytics({
   const [creditsData, setCreditsData] = useState<unknown>(null);
 
   const location = useLocation();
+  const masvParam = new URLSearchParams(location.search).get("masv") ?? undefined;
   const [isSemesterOpen, setIsSemesterOpen] = useState(false);
   const semBtnRef = useRef<HTMLButtonElement | null>(null);
   // extract masv query param
@@ -157,7 +158,9 @@ export default function EcommerceAnalytics({
       try {
         // Fetch registered credits (all semesters)
         const credits = await fetchStudentRegisteredCredits(masv);
+        console.info("Số tín chỉ đăng kí data:", credits);
         if (!mounted) return;
+
         setCreditsData(credits);
       } catch (e) {
         console.error("Không thể tải số tín chỉ đăng kí", e);
@@ -440,27 +443,44 @@ export default function EcommerceAnalytics({
                   // Format of selectedSemesterDisplayName: "HK1 - 2024-2025"
                   // Format of API data: { "Ten Nam Hoc": "2024-2025", "Ten Hoc Ky": "HK1", "TongTinChi": 4 }
                   const parts = selectedSemesterDisplayName.split(" - ");
-                  if (parts.length === 2) {
+                  // parts normally: [term, year] but year itself may contain " - " (e.g. "2024 - 2025")
+                  if (parts.length >= 2) {
                     const term = parts[0].trim();
-                    const year = parts[1].trim();
+                    const year = parts.slice(1).join(" - ").trim();
                     const match = (
                       creditsData as Record<string, unknown>[]
                     ).find(
                       (r) =>
-                        String(r["Ten Hoc Ky"]).trim() === term &&
-                        String(r["Ten Nam Hoc"]).trim() === year
+                        String(r["Ten Hoc Ky"] ?? "").trim() === term &&
+                        String(r["Ten Nam Hoc"] ?? "").trim() === year
                     );
                     if (match) {
-                      credits = Number(match["TongTinChi"]);
+                      credits = Number(
+                        match["TongTinChi"] ??
+                          match["Tong So Tin Chi"] ??
+                          match["TongSoTinChi"] ??
+                          0
+                      );
+                    } else {
+                      // If exact (term+year) not found, try matching term only as fallback
+                      const termMatch = (
+                        creditsData as Record<string, unknown>[]
+                      ).find(
+                        (r) => String(r["Ten Hoc Ky"] ?? "").trim() === term
+                      );
+                      if (termMatch)
+                        credits = Number(termMatch["TongTinChi"] ?? 0);
                     }
                   } else {
                     // Fallback if format is just "HK1" or similar
                     const term = selectedSemesterDisplayName.trim();
                     const match = (
                       creditsData as Record<string, unknown>[]
-                    ).find((r) => String(r["Ten Hoc Ky"]).trim() === term);
+                    ).find(
+                      (r) => String(r["Ten Hoc Ky"] ?? "").trim() === term
+                    );
                     if (match) {
-                      credits = Number(match["TongTinChi"]);
+                      credits = Number(match["TongTinChi"] ?? 0);
                     }
                   }
                 }
@@ -516,9 +536,9 @@ export default function EcommerceAnalytics({
                         passRateData as Array<Record<string, unknown>>;
                       if (selectedSemesterDisplayName) {
                         const parts = selectedSemesterDisplayName.split(" - ");
-                        if (parts.length === 2) {
+                        if (parts.length >= 2) {
                           const term = parts[0].trim();
-                          const year = parts[1].trim();
+                          const year = parts.slice(1).join(" - ").trim();
                           matchingSemesterData = (
                             passRateData as Array<Record<string, unknown>>
                           ).filter((item) => {
@@ -530,6 +550,17 @@ export default function EcommerceAnalytics({
                             ).trim();
                             return itemTerm === term && itemYear === year;
                           });
+                          // If exact term+year not found, fall back to term-only match
+                          if (!matchingSemesterData.length) {
+                            matchingSemesterData = (
+                              passRateData as Array<Record<string, unknown>>
+                            ).filter((item) => {
+                              const itemTerm = String(
+                                item["Ten Hoc Ky"] ?? item["TenHocKy"] ?? ""
+                              ).trim();
+                              return itemTerm === term;
+                            });
+                          }
                         }
                       }
 
@@ -568,7 +599,7 @@ export default function EcommerceAnalytics({
                     } else if (typeof passRateData === "object") {
                       const obj = passRateData as Record<string, unknown>;
                       const raw =
-                        obj["Ty_Le_Dau"] ??
+                        obj["Ty_Le_Qua_Mon"] ??
                         obj["TiLe_Dau"] ??
                         obj["TyLeDau"] ??
                         null;
@@ -635,7 +666,11 @@ export default function EcommerceAnalytics({
           </div>
 
           <div className="h-full">
-            <WebsiteVisitsColumnChart className="h-full" />
+            <WebsiteVisitsColumnChart
+              className="h-full"
+              masv={masvParam}
+              semesterDisplayName={selectedSemesterDisplayName ?? undefined}
+            />
           </div>
         </div>
         {/* (other optional widgets were removed to simplify layout) */}

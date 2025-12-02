@@ -5,6 +5,7 @@ import {
   fetchStudentGPAs,
   StudentGPARecord,
   fetchStudentsByClass,
+  AdvisorDashboardData,
 } from "../../utils/ClassLecturerApi";
 import { COLORS } from "../../utils/colors";
 
@@ -16,7 +17,12 @@ interface StatisticsChartProps {
 export default function StatisticsChart({
   selectedClassName,
   selectedSemesterDisplayName,
-}: StatisticsChartProps) {
+  advisorData,
+  loading: advisorLoading,
+}: StatisticsChartProps & {
+  advisorData?: AdvisorDashboardData | null;
+  loading?: boolean;
+}) {
   const [data, setData] = useState<StudentGPARecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,34 +34,55 @@ export default function StatisticsChart({
         setData([]);
         return;
       }
+
+      // If advisorData has per-student GPA/DRL, prefer it and avoid additional network calls
+      if (
+        advisorData &&
+        Array.isArray(advisorData.gpaConduct) &&
+        advisorData.gpaConduct.length
+      ) {
+        try {
+          const mapped: StudentGPARecord[] = advisorData.gpaConduct.map(
+            (r) => ({
+              studentName: r.studentName,
+              gpa: Number.isFinite(r.gpa) ? r.gpa : Number(r.gpa) || 0,
+            })
+          );
+          setData(mapped);
+          setLoading(false);
+          setError(null);
+          return;
+        } catch (err) {
+          console.error("StatisticsChart mapping error:", err);
+          // fall through to fetch fallback
+        }
+      }
+
+      // Otherwise, fall back to previous behavior (fetch roster + per-student GPAs)
       setLoading(true);
       setError(null);
       try {
-        // Fetch both roster and semester GPAs, then merge so every roster student appears
         const [roster, gpas] = await Promise.all([
           fetchStudentsByClass(selectedClassName),
           fetchStudentGPAs(selectedClassName, selectedSemesterDisplayName),
         ]);
 
-        // If roster is empty -> treat as no data for this semester
         if (!roster || roster.length === 0) {
           if (!ignore) setData([]);
           return;
         }
 
-        // Build quick lookup of GPA by student name (normalized)
         const gpaByName = new Map<string, number>();
         for (const r of gpas || []) {
           const nm = (r.studentName || "").trim();
           if (nm) gpaByName.set(nm, Number.isFinite(r.gpa) ? r.gpa : 0);
         }
 
-        // For each roster entry, prefer roster name fields and fallback to GPA list order
         const merged: StudentGPARecord[] = roster.map((st) => {
           const name = String(
             st["Ho Ten"] ?? st["Ten Sinh Vien"] ?? st["StudentName"] ?? ""
           ).trim();
-          const gpa = gpaByName.has(name) ? (gpaByName.get(name) as number) : 0; // default 0 when student has no GPA for that semester
+          const gpa = gpaByName.has(name) ? (gpaByName.get(name) as number) : 0;
           return { studentName: name || "(không tên)", gpa };
         });
 
@@ -67,11 +94,23 @@ export default function StatisticsChart({
         if (!ignore) setLoading(false);
       }
     };
-    load();
+    // If a parent-provided advisorLoading is true, show loading state until it finishes
+    if (advisorLoading) {
+      setLoading(true);
+      setData([]);
+      return;
+    }
+
+    void load();
     return () => {
       ignore = true;
     };
-  }, [selectedClassName, selectedSemesterDisplayName]);
+  }, [
+    selectedClassName,
+    selectedSemesterDisplayName,
+    advisorData,
+    advisorLoading,
+  ]);
 
   const categories = data.map((d) => d.studentName);
   const series = [

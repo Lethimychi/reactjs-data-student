@@ -191,13 +191,9 @@ const AppSidebar: React.FC = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="py-8 flex">
+      <div className="flex">
         <Link to="/">
-          {isExpanded || isHovered ? (
-            <img src="/images/logo/logo.svg" width={150} />
-          ) : (
-            <img src="/images/logo/logo-icon.svg" width={32} />
-          )}
+          <img src="/images/logo/logo.svg" width={200} />
         </Link>
       </div>
 
