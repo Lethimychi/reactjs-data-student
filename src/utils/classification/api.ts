@@ -1,29 +1,16 @@
 import { API_BASE_URL, getAuth } from "../share";
 
 export interface SubjectGradeRatio {
+  "Ten Nam": string;
   "Ten Nam Hoc": string;
   "Ten Hoc Ky": string;
-  "Ma Sinh Vien": string;
+
+  TyLe_Gioi: number;
+  TyLe_Kha: number;
+  TyLe_TB: number;
+  TyLe_Yeu: number;
 
   TongMon: number;
-
-  So_A: number;
-  "So_B+": number;
-  So_B: number;
-  "So_C+": number;
-  So_C: number;
-  "So_D+": number;
-  So_D: number;
-  So_F: number;
-
-  TyLe_A: number;
-  "TyLe_B+": number;
-  TyLe_B: number;
-  "TyLe_C+": number;
-  TyLe_C: number;
-  "TyLe_D+": number;
-  TyLe_D: number;
-  TyLe_F: number;
 }
 
 export async function getSubjectGradeRatio(): Promise<

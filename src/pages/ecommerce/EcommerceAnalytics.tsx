@@ -84,7 +84,6 @@ export default function EcommerceAnalytics({
   const [selectedSemesterDisplayName, setSelectedSemesterDisplayName] =
     useState<string | null>(propSemester ?? "");
 
-  console.log("Selected semester:", selectedSemesterDisplayName);
   const [studentInfo, setStudentInfo] = useState<Record<
     string,
     unknown
