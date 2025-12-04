@@ -32,14 +32,15 @@ import ChatBot from "../../components/chat/ChatBox";
 import {
   getStudentPrediction,
   PredictionResult,
+  Learningresult,
 } from "../../utils/student_api";
 
 const StudentDashboard: React.FC = () => {
   // ========== UI STATE ==========
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
-  const [selectedTab, setSelectedTab] = useState<"overview" | "prediction">(
-    "overview"
-  );
+  const [selectedTab, setSelectedTab] = useState<
+    "overview" | "prediction" | "learningresult"
+  >("overview");
   const [highlightedSubject, setHighlightedSubject] = useState<string | null>(
     null
   );
@@ -69,6 +70,13 @@ const StudentDashboard: React.FC = () => {
   const [predLoading, setPredLoading] = useState(false);
   const [predError, setPredError] = useState<string | null>(null);
 
+  // Learning-result state (for "Dự đoán kết quả học tập cho kỳ tiếp theo")
+  const [learningResult, setLearningResult] = useState<PredictionResult | null>(
+    null
+  );
+  const [learnLoading, setLearnLoading] = useState(false);
+  const [learnError, setLearnError] = useState<string | null>(null);
+
   useEffect(() => {
     // Use normalized id from info.id or numeric id on the student object
     const ma =
@@ -92,6 +100,41 @@ const StudentDashboard: React.FC = () => {
         if (!mounted) return;
         setPredLoading(false);
       });
+    return () => {
+      mounted = false;
+    };
+  }, [currentStudent]);
+
+  // Fetch learning-result (next-semester prediction) once we have student id
+  useEffect(() => {
+    const ma =
+      currentStudent?.info?.id ??
+      (currentStudent?.id ? String(currentStudent.id) : null);
+    if (!ma) return;
+    let mounted = true;
+    setLearnLoading(true);
+    setLearnError(null);
+    console.log("Requesting learning-result for student:", ma);
+    Learningresult(ma)
+      .then((res) => {
+        if (!mounted) return;
+        console.log("Learningresult API response:", res);
+        // Defensive: some endpoints may return an array or a single object
+        if (res && Array.isArray(res)) {
+          setLearningResult(res.length ? (res[0] as PredictionResult) : null);
+        } else {
+          setLearningResult(res as PredictionResult | null);
+        }
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        setLearnError(String(e ?? "Lỗi gọi dự đoán học tập"));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLearnLoading(false);
+      });
+
     return () => {
       mounted = false;
     };
@@ -219,7 +262,7 @@ const StudentDashboard: React.FC = () => {
   // ========== RENDER ==========
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50"
+      className="min-h-screen bg-white"
       style={{ fontFamily: "Inter, Manrope, Outfit, sans-serif" }}
     >
       {/* Header gradient bar */}
@@ -241,6 +284,16 @@ const StudentDashboard: React.FC = () => {
               Tổng quan
             </button>
             <button
+              onClick={() => setSelectedTab("learningresult")}
+              className={`px-4 py-2 rounded-lg font-semibold transition ${
+                selectedTab === "learningresult"
+                  ? "bg-white shadow-md"
+                  : "bg-transparent"
+              }`}
+            >
+              Dự đoán kết quả học tập cho kỳ tiếp theo
+            </button>
+            <button
               onClick={() => setSelectedTab("prediction")}
               className={`px-4 py-2 rounded-lg font-semibold transition ${
                 selectedTab === "prediction"
@@ -248,7 +301,7 @@ const StudentDashboard: React.FC = () => {
                   : "bg-transparent"
               }`}
             >
-              Dự đoán hiệu suất tương lai
+              Dự đoán kết quả xét tốt nghiệp
             </button>
           </div>
 
@@ -273,10 +326,23 @@ const StudentDashboard: React.FC = () => {
                 prediction={prediction}
                 predLoading={predLoading}
                 predError={predError}
+                loai="Còn lại"
               />
             </div>
           )}
-
+          {selectedTab === "learningresult" && (
+            <div className="bg-white rounded-2xl p-8 border border-blue-100/50 shadow-xl shadow-blue-100/20 transition-all duration-300">
+              <PredictionPanel
+                currentStudent={currentStudent}
+                highlightedSubject={highlightedSubject}
+                onHighlightSubject={() => setHighlightedSubject(null)}
+                prediction={learningResult}
+                predLoading={learnLoading}
+                predError={learnError}
+                loai="Số tín chỉ kỳ tiếp theo"
+              />
+            </div>
+          )}
           {/* Overview Tab */}
           {selectedTab === "overview" && (
             <>

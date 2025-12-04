@@ -11,10 +11,12 @@ interface PredictionPanelProps {
   prediction?: PredictionResult | null;
   predLoading?: boolean;
   predError?: string | null;
+  loai?: string | null;
 }
 
 export const PredictionPanel: React.FC<PredictionPanelProps> = ({
   prediction,
+  loai,
 }) => {
   const gpa10Display = prediction?.GPA_He10 ?? "-";
   const gpa4Display = prediction?.GPA_He4 ?? "-";
@@ -69,7 +71,7 @@ export const PredictionPanel: React.FC<PredictionPanelProps> = ({
               </div>
             </div>
             <div className="rounded-lg p-4">
-              <div className="text-xs text-gray-500 uppercase">Còn lại</div>
+              <div className="text-xs text-gray-500 uppercase">{loai}</div>
               <div className="text-2xl font-semibold text-slate-700 mt-2">
                 {remainingCredits}
               </div>

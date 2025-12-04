@@ -37,7 +37,7 @@ export default function ChatBot({ userType }: ChatBotProps) {
     {
       id: 1,
       sender: "ai",
-      text: "Chào bạn! Mình là trợ lý AI học tập. Bạn cần hỗ trợ gì không? 😊",
+      text: "Chào bạn! Mình là trợ lý AI. Bạn cần hỗ trợ gì không? 😊",
       timestamp: new Date(),
     },
   ]);

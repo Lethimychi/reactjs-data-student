@@ -245,3 +245,17 @@ export async function getStudentPrediction(
     return null;
   }
 }
+export async function Learningresult(
+  maSinhVien: string | number
+): Promise<PredictionResult | null> {
+  try {
+    const query = `?MaSinhVien=${encodeURIComponent(String(maSinhVien))}`;
+    const data = await fetchWithAuth<PredictionResult>(
+      `/dudoan/du-doan-hoc-ky-toi${query}`
+    );
+    return data;
+  } catch (err) {
+    console.error("❌ Lỗi gọi API dự đoán:", err);
+    return null;
+  }
+}

@@ -25,6 +25,7 @@ import Home from "./pages/Dashboard/Home";
 import EcommerceAnalytics from "./pages/ecommerce/EcommerceAnalytics";
 import DashboardLanding from "./pages/Dashboard/DashboardLanding";
 import RequireRole from "./components/common/RequireRole";
+import UserManagement from "./pages/Dashboard/UserManagement";
 import StudentPage from "./pages/Students/page";
 import ChartSectionPage from "./pages/Students/sectionPage";
 
@@ -85,6 +86,15 @@ export default function App() {
             <Route
               path="/ecommerce-analytics"
               element={<EcommerceAnalytics />}
+            />
+
+            <Route
+              path="/user-management"
+              element={
+                <RequireRole allowed={["QuanTri"]}>
+                  <UserManagement />
+                </RequireRole>
+              }
             />
 
             {/* Others Page */}
