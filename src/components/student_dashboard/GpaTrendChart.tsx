@@ -135,10 +135,12 @@ export const GpaTrendChart: React.FC<GpaTrendChartProps> = ({
               <Cell fill="#93C5FD" />
             </Pie>
             <Tooltip
-              formatter={(value: number | string) => [
-                `${Number(value).toFixed(2)} / 10.0`,
-                "GPA",
-              ]}
+              formatter={(value: number | string, name: string) => {
+                if (name === "GPA đạt được") {
+                  return [`${Number(value).toFixed(2)} / 10.0`, "GPA"];
+                }
+                return [`${Number(value).toFixed(2)} / 10.0`, "Còn lại"];
+              }}
               contentStyle={{
                 background: "#fff",
                 borderRadius: 10,

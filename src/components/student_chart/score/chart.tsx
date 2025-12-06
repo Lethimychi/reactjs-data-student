@@ -101,11 +101,11 @@ export function StudentScoreChartHighestLowest() {
     return (
       <div className="bg-white p-4 rounded-xl shadow-lg border-none">
         <div className="font-semibold text-slate-800 mb-2 text-sm">{}</div>
-
+        <p>{selectedSemester}</p>
         {items.map((item) => (
           <div key={item.dataKey} className="text-sm text-slate-700 mb-1">
-            <strong className="font-semibold">{item.name}:</strong> {item.value}{" "}
-            điểm —{" "}
+            <strong className="font-semibold">{item.name}:</strong>{" "}
+            {item.value.toFixed(1)} điểm —{" "}
             {item.dataKey === "highestScore"
               ? item.payload.highestSubject
               : item.payload.lowestSubject}
@@ -126,7 +126,7 @@ export function StudentScoreChartHighestLowest() {
             <Award className="w-6 h-6 text-[#3B82F6]" />
           </div>
           <h2 className="text-xl font-semibold text-[#1E293B]">
-            Hiệu suất theo học kỳ (Cao nhất vs Thấp nhất)
+            Môn học điểm cao/thấp nhất theo học kỳ
           </h2>
         </div>
 

@@ -40,8 +40,8 @@ export const PassRateChart: React.FC<PassRateChartProps> = ({
     <div className="bg-white rounded-2xl p-6 shadow-md shadow-slate-200 w-full border border-[#E2E8F0]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-50 rounded-lg">
-            <Target className="w-6 h-6 text-green-600" />
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <Target className="w-6 h-6 text-blue-600" />
           </div>
           <h2 className="text-xl font-semibold text-[#1E293B]">
             Tỷ lệ Đậu/Rớt theo tín chỉ

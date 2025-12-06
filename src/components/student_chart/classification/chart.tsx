@@ -189,7 +189,7 @@ export default function StudentClassificationChart({
                   _name: string,
                   props: { payload?: { percentage?: string; name?: string } }
                 ) => [
-                  `${value} môn (${props.payload?.percentage ?? "0"}%)`,
+                  `${props.payload?.percentage ?? "0"}%`,
                   props.payload?.name ?? "",
                 ]}
               />
@@ -226,7 +226,7 @@ export default function StudentClassificationChart({
 
                 <div className="text-right">
                   <div className="text-3xl font-bold text-slate-800 mb-1">
-                    {item.value}
+                    {item.percentage}%
                   </div>
 
                   <div
@@ -236,11 +236,14 @@ export default function StudentClassificationChart({
                     {item.subjects.join(", ")}
                   </div>
 
-                  <div
+                  {/* <div
                     className="text-sm font-semibold"
                     style={{ color: GRADE_COLORS[item.name] }}
                   >
                     {item.percentage}%
+                  </div> */}
+                  <div className="text-sm font-semibold">
+                    {item.subjects.length} môn
                   </div>
                 </div>
               </div>
