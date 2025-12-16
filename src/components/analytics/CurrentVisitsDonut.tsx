@@ -154,7 +154,7 @@ export default function CurrentVisitsDonut({
 
   return (
     <div
-      className={`rounded-2xl border border-blue-100  p-6 dark:border-red dark:bg-white ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-white p-6 ${className}`}
     >
       <header className="flex items-start justify-between">
         <div>

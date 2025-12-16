@@ -51,7 +51,38 @@ export default function StudentClassificationChart({
       try {
         const semesterBreak = separateSemester(semester);
 
-        // --- SUBJECT DETAIL GROUPING ---
+        // --- FETCH SEMESTER GRADE COUNT FROM API ---
+        const res = await getSubjectGradeRatio();
+        console.log("✅ Fetched classification data (RAW):", res);
+        const filtered = res?.filter(
+          (x) =>
+            x["Ten Hoc Ky"] === semesterBreak.semester &&
+            x["Ten Nam Hoc"] === semesterBreak.year
+        );
+        console.log("✅ Filtered classification data (RAW):", filtered);
+        if (filtered && filtered.length > 0) {
+          const firstRow = filtered[0];
+          console.log("✅ First row FULL object:", firstRow);
+          console.log("✅ First row details:", {
+            TyLe_Gioi: firstRow.TyLe_Gioi,
+            TyLe_Kha: firstRow.TyLe_Kha,
+            TyLe_TB: firstRow.TyLe_TB,
+            TyLe_Yeu: firstRow.TyLe_Yeu,
+            TongMon: firstRow.TongMon,
+          });
+          // Log calculated counts
+          const totalSubs = firstRow.TongMon ?? 1;
+          console.log("✅ Calculated counts:", {
+            Gioi_count: Math.round((firstRow.TyLe_Gioi ?? 0) * totalSubs),
+            Kha_count: Math.round((firstRow.TyLe_Kha ?? 0) * totalSubs),
+            TB_count: Math.round((firstRow.TyLe_TB ?? 0) * totalSubs),
+            Yeu_count: Math.round((firstRow.TyLe_Yeu ?? 0) * totalSubs),
+          });
+        }
+        setData(filtered ?? []);
+
+        // --- OPTIONAL: GET SUBJECT NAMES FOR TOOLTIP ---
+        // Only use this to populate subject names, but calculate counts strictly from API tỷ lệ
         const subjectInSemester = await getStudentDetailedCourses();
         const filteredSubjects = subjectInSemester?.filter(
           (x) =>
@@ -73,17 +104,6 @@ export default function StudentClassificationChart({
         });
 
         setSubjects(grouped);
-
-        // --- FETCH SEMESTER GRADE COUNT ---
-        const res = await getSubjectGradeRatio();
-        console.log("Fetched classification data:", res);
-        const filtered = res?.filter(
-          (x) =>
-            x["Ten Hoc Ky"] === semesterBreak.semester &&
-            x["Ten Nam Hoc"] === semesterBreak.year
-        );
-        console.log("Filtered classification data:", filtered);
-        setData(filtered ?? []);
       } catch (err) {
         console.error("❌ Error fetching grade data:", err);
       }
@@ -103,10 +123,12 @@ export default function StudentClassificationChart({
 
     return data.reduce(
       (acc, row) => {
-        acc["Giỏi"] += row.TyLe_Gioi ?? 0;
-        acc["Khá"] += row.TyLe_Kha ?? 0;
-        acc["Trung bình"] += row.TyLe_TB ?? 0;
-        acc["Yếu"] += row.TyLe_Yeu ?? 0;
+        // Convert ratio to actual count by multiplying by TongMon
+        const totalSubjects = row.TongMon ?? 1;
+        acc["Giỏi"] += Math.round((row.TyLe_Gioi ?? 0) * totalSubjects);
+        acc["Khá"] += Math.round((row.TyLe_Kha ?? 0) * totalSubjects);
+        acc["Trung bình"] += Math.round((row.TyLe_TB ?? 0) * totalSubjects);
+        acc["Yếu"] += Math.round((row.TyLe_Yeu ?? 0) * totalSubjects);
         return acc;
       },
       { ...initial }

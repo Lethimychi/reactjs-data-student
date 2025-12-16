@@ -223,7 +223,7 @@ export default function EcommerceAnalytics({
   return (
     <>
       {/* Main Container with Light Blue Background */}
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 p-6">
+      <div className="min-h-screen bg-white p-6 ">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div className="flex-1">

@@ -18,7 +18,7 @@ const othersItems: NavItem[] = [
     name: "Phân quyền",
     subItems: [
       { name: "Đăng nhập", path: "/signin" },
-      { name: "Đăng ký", path: "/signup" },
+      // { name: "Đăng ký", path: "/signup" },
     ],
   },
 ];
