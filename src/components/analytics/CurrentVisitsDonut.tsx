@@ -25,6 +25,7 @@ export default function CurrentVisitsDonut({
     setLoading(true);
     try {
       const data = await getSubjectGradeRatioGV(mssv);
+      console.log("Data from API:", data);
 
       console.log(semester);
       if (!data || data.length === 0) {
