@@ -207,13 +207,20 @@ export default function StudentClassificationChart({
                   borderRadius: "12px",
                 }}
                 formatter={(
-                  value: number,
+                  _value: number,
                   _name: string,
-                  props: { payload?: { percentage?: string; name?: string } }
-                ) => [
-                  `${props.payload?.percentage ?? "0"}%`,
-                  props.payload?.name ?? "",
-                ]}
+                  props: {
+                    payload?: {
+                      percentage?: number | string;
+                      name?: string;
+                    };
+                  }
+                ): [string, string] => {
+                  const percentage = props.payload?.percentage ?? 0;
+                  const label = props.payload?.name ?? "";
+
+                  return [`${percentage}%`, label];
+                }}
               />
             </PieChart>
           </ResponsiveContainer>
